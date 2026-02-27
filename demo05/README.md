@@ -611,3 +611,37 @@ Taulukossa kuvataan reittikoodeissa käytettyjen metodien tarkoitus ja perusrake
 | id:n generointi | `Math.max(...ajot.map(a => a.id)) + 1` | `@default(autoincrement())` |
 | `pvm`:n asetus | `new Date().toLocaleDateString("fi-FI")` | `@default(now())`, tyyppi `Date` |
 | Reittifunktiot | Synkronisia | Asynkronisia (`async/await`) |
+
+---
+
+## Sovelluksen käynnistys
+
+Demo 5:ssä `.env`-tiedosto, `dev.db`-tietokantatiedosto ja `generated/prisma`-kansio eivät tallennu versionhallintaan, joten ne on luotava paikallisesti ennen palvelimen käynnistystä.
+
+**1. Asenna riippuvuudet:**
+
+```bash
+npm install
+```
+
+**2. Luo `.env`-tiedosto projektin juureen:**
+
+```
+DATABASE_URL="file:./dev.db"
+```
+
+**3. Aja migraatiot ja generoi Prisma Client:**
+
+```bash
+npx prisma migrate dev
+```
+
+Tämä luo `dev.db`-tietokantatiedoston ja generoi Prisma Clientin `generated/prisma`-kansioon.
+
+**4. Käynnistä palvelin:**
+
+```bash
+npm run dev
+```
+
+Palvelin käynnistyy osoitteeseen `http://localhost:3005`.

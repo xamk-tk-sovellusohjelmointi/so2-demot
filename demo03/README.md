@@ -661,3 +661,16 @@ Demosovellus käyttää JavaScript-taulukon metodeja ajojen hallintaan muistissa
 | 400 Bad Request | Pyynnön body puuttuu, on virheellisessä muodossa tai sisältää kelvottomia arvoja. |
 | 404 Not Found | Pyydettyä resurssia ei löydy, esimerkiksi id:tä vastaavaa tietuetta ei ole olemassa. |
 | 500 Internal Server Error | Palvelimella tapahtui odottamaton virhe, jota ei ole erikseen käsitelty. |
+
+---
+
+## Sovelluksen käynnistys
+
+Jos kloonasit projektin valmiina, asenna riippuvuudet ja käynnistä palvelin:
+
+```bash
+npm install
+npm run dev
+```
+
+Palvelin käynnistyy osoitteeseen `http://localhost:3003`.

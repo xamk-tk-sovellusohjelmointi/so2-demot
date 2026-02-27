@@ -490,3 +490,16 @@ Järjestys on tärkeä. Virhekäsittelijä rekisteröidään aina viimeisenä, j
 | 400 Bad Request | Pyynnön body puuttuu, on virheellisessä muodossa tai sisältää kelvottomia arvoja. |
 | 404 Not Found | Pyydettyä resurssia ei löydy. |
 | 500 Internal Server Error | Odottamaton palvelinvirhe. `Virhe`-luokan oletusarvo, jos tilakoodia ei anneta. |
+
+---
+
+## Sovelluksen käynnistys
+
+Jos kloonasit projektin valmiina, asenna riippuvuudet ja käynnistä palvelin:
+
+```bash
+npm install
+npm run dev
+```
+
+Palvelin käynnistyy osoitteeseen `http://localhost:3004`.
