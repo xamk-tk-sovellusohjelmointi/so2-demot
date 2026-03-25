@@ -1,322 +1,276 @@
-# Demo 7: Asiakassovellus — JWT-autorisointi
+# Demo 7: Asiakassovellus (client)
 
-## 1. Asiakassovelluksen rooli
+Tämä on demon 7 React-asiakassovellus, joka kommunikoi Express-palvelimen kanssa JWT-autorisoiduilla API-kutsuilla. Sovellus on ostoslista, johon voidaan lisätä ja poistaa tuotteita.
 
-Demo 7:n asiakassovellus on React-sovellus, joka kommunikoi Express-palvelimen kanssa JWT-autorisoinnin kautta. Toiminnallisesti sovellus on identtinen demo 6:n ostoslistasovelluksen kanssa, mutta jokainen palvelimelle lähtevä pyyntö sisältää nyt `Authorization`-headerin JWT-tokenilla.
-
-Ilman oikeaa tokenia palvelin hylkää pyynnön statuskoodilla 401, ja käyttäjälle näytetään virheilmoitus.
-
-Sovellus rakentuu seuraavista teknologioista:
-
-| Teknologia          | Käyttötarkoitus                                |
-|---------------------|------------------------------------------------|
-| React 19            | Käyttöliittymäkomponentit ja tilan hallinta    |
-| TypeScript          | Tyyppiturvallisuus                             |
-| Vite 8              | Kehityspalvelin ja bundlaus                    |
-| MUI (Material UI)   | Valmiit UI-komponentit                         |
+Vite-projektin alustaminen tyhjästä on kuvattu erillisessä ohjeessa: **[VITE_ALUSTUS.md](./VITE_ALUSTUS.md)**.
 
 ---
 
-## 2. Projektin rakenne
+## Mikä muuttuu demo 6:sta?
 
-```
-client/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── App.tsx          ← sovelluksen pääkomponentti, kaikki logiikka tässä
-│   ├── main.tsx         ← React-sovelluksen käynnistyspiste
-│   ├── App.css          ← Vite-pohjan tyylit (ei käytössä omassa koodissa)
-│   └── index.css        ← globaalit tyylit
-├── index.html           ← HTML-pohja
-├── vite.config.ts       ← Vite-konfiguraatio (portti 3000)
-├── tsconfig.json        ← TypeScript-konfiguraatioviittaukset
-├── tsconfig.app.json    ← TypeScript-asetukset sovelluskoodille
-├── tsconfig.node.json   ← TypeScript-asetukset Node-ympäristölle (vite.config.ts)
-└── eslint.config.js     ← ESLint-asetukset
-```
+Demossa 6 asiakassovellus teki API-kutsuja ilman tunnistautumista. Demossa 7 palvelin vaatii **JWT-tokenin** jokaisessa pyynnössä. Asiakassovelluksen näkökulmasta tämä tarkoittaa kahta muutosta:
+
+1. Jokaiseen fetch-kutsuun lisätään `Authorization`-header
+2. Virhekäsittelyyn lisätään `401 Unauthorized` -statuskoodin tunnistus
+
+Muu sovelluslogiikka (tuotteiden listaus, lisäys, poisto) pysyy samana.
 
 ---
 
-## 3. Demosovelluksen rakentuminen vaihe vaiheelta
+## Projektin käynnistys
 
-### Vaihe 1: Vite-projektin alustaminen
-
-Luodaan uusi React + TypeScript -projekti Viten avulla:
+Palvelimen (`demo07/`) tulee olla käynnissä portissa 3007 ennen asiakassovellusta.
 
 ```bash
-mkdir demo07/client
-cd demo07/client
-npm create vite@latest . -- --template react-ts
+cd client
+npm install
+npm run dev
 ```
 
-Komento luo kansiorakenteen, `package.json`:n ja kaikki konfiguraatiotiedostot automaattisesti.
+Sovellus aukeaa osoitteessa `http://localhost:3000`. Kehityksen aikana käytetään kahta erillistä terminaalia: toista palvelimelle, toista asiakassovellukselle.
 
-### Vaihe 2: MUI-pakettien asentaminen
+---
 
-Asennetaan Material UI ja sen riippuvuudet sekä Roboto-fontti:
+## Tyyppimäärittelyt
 
-```bash
-npm install @mui/material @emotion/react @emotion/styled
-npm install @mui/icons-material
-npm install @fontsource/roboto
-```
-
-Asennuksen jälkeen `package.json`:n `dependencies`-osio näyttää tältä:
-
-```json
-{
-  "dependencies": {
-    "@emotion/react": "^11.x.x",
-    "@emotion/styled": "^11.x.x",
-    "@fontsource/roboto": "^5.x.x",
-    "@mui/icons-material": "^7.x.x",
-    "@mui/material": "^7.x.x",
-    "react": "^19.x.x",
-    "react-dom": "^19.x.x"
-  }
-}
-```
-
-### Vaihe 3: Vite-konfiguraatio (vite.config.ts)
-
-Asetetaan kehityspalvelimelle kiinteä portti, jotta se täsmää palvelimen CORS-asetuksiin:
+`App.tsx`-tiedoston alussa määritellään kolme TypeScript-interfacea:
 
 ```typescript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000
-  }
-})
-```
-
-Palvelimen CORS-asetus sallii yhteydet osoitteesta `http://localhost:3000`, joten portin täytyy olla sama. Ilman kiinteää porttia Vite saattaa käynnistyä eri portissa.
-
-### Vaihe 4: Käynnistyspiste (main.tsx)
-
-Päivitetään `main.tsx` tuomaan Roboto-fontti ennen sovelluksen renderöintiä:
-
-```tsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import '@fontsource/roboto/300.css'
-import '@fontsource/roboto/400.css'
-import '@fontsource/roboto/500.css'
-import '@fontsource/roboto/700.css'
-import App from './App.tsx'
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
-```
-
-Roboto-fontti tuodaan `@fontsource/roboto`-paketista neljällä eri paksuudella (300, 400, 500, 700), joita MUI-komponentit käyttävät.
-
-### Vaihe 5: Pääkomponentti (App.tsx)
-
-Tämä on sovelluksen ainoa komponentti. Se sisältää kaiken logiikan: tilan hallinnan, API-kutsut ja käyttöliittymän.
-
-#### 5.1 Tyypimäärittelyt ja JWT-token
-
-```tsx
-// Token, joka on generoitu luoJWT.js-ohjelmalla palvelimen salaisella avaimella.
-// Oikeassa sovelluksessa token tulisi palvelimelta kirjautumisen jälkeen, ei koodiin kovakoodattuna.
-const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-
 interface Ostos {
-  id: number
-  tuote: string
-  poimittu: boolean
+  id: number;
+  tuote: string;
+  poimittu: boolean;
 }
 
 interface ApiData {
-  ostokset: Ostos[]
-  virhe: string
-  haettu: boolean
+  ostokset: Ostos[];
+  virhe: string;
+  haettu: boolean;
+}
+
+interface FetchAsetukset {
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
 }
 ```
 
-`JWT_TOKEN` on vakio, joka sisältää palvelimen `luoJWT.js`-ohjelmalla generoidun tokenin. Tämä on demomainen tapa — oikeassa sovelluksessa token saataisiin palvelimelta kirjautumisen yhteydessä.
+**`Ostos`** vastaa palvelimen Prisma-mallia. Jokainen ostos sisältää `id`-tunnisteen, `tuote`-nimen ja `poimittu`-tilan (onko tuote poimittu ostoslistalta).
 
-#### 5.2 Tila ja refs
+**`ApiData`** on sovelluksen tilamuuttujan tyyppi. Se sisältää kolme kenttää: `ostokset` on taulukko palvelimelta haetuista ostoksista, `virhe` on virheilmoitus (tyhjä merkkijono, jos virhettä ei ole) ja `haettu` kertoo, onko API-kutsu valmistunut. `haettu`-kenttää käytetään latausanimaation näyttämiseen.
 
-```tsx
-const lomakeRef = useRef<HTMLFormElement>(null);
+**`FetchAsetukset`** tyypittää `fetch()`-funktiolle annettavan asetukset-objektin. Demossa 6 tämä tyypitettiin `any`-tyypillä, mutta tarkempi tyypitys on parempi käytäntö. `Record<string, string>` tarkoittaa objektia, jonka avaimet ja arvot ovat molemmat merkkijonoja.
+
+---
+
+## JWT-tokenin käyttö fetch-kutsuissa
+
+### Token vakiona
+
+```typescript
+const TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDIyMDMzNDh9.0OqTw4sohQE6UdVF8nRAAiMOwNK95mSwPOCbdgLjmgo";
+```
+
+Token on tallennettu moduulitason vakioon. Se on luotu palvelinprojektin `luoJWT.js`-skriptillä ja kopioitu tähän manuaalisesti.
+
+> **Huomio:** Tämä on tietoturvariski. Token on näkyvissä asiakassovelluksen lähdekoodissa, joten kuka tahansa selaimen kehittäjätyökaluja osaava löytää sen. Demossa 8 toteutetaan turvallisempi ratkaisu, jossa token luodaan palvelimella kirjautumisen yhteydessä.
+
+### Authorization-header
+
+Jokaiseen fetch-kutsuun lisätään `Authorization`-header:
+
+```typescript
+let asetukset: FetchAsetukset = {
+  method: metodi || "GET",
+  headers: {
+    Authorization: `Bearer ${TOKEN}`,
+  },
+};
+```
+
+**`Bearer`** on HTTP-standardin mukainen autentikaatiotyyppi. Se kertoo palvelimelle, että headerin arvo on JWT-token. Muoto on aina `"Bearer "` + token, välilyönnillä erotettuna. Palvelimen JWT-middleware lukee tämän headerin, erottaa tokenin `split(" ")[1]`-kutsulla ja tarkistaa allekirjoituksen.
+
+### Headerin laajentaminen POST-kutsuissa
+
+Kun lähetetään dataa palvelimelle (POST), headeriin lisätään `Content-Type`:
+
+```typescript
+if (metodi === "POST") {
+  asetukset = {
+    ...asetukset,
+    headers: {
+      ...asetukset.headers!,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(ostos),
+  };
+}
+```
+
+Spread-operaattori (`...`) kopioi olemassa olevat asetukset ja headerit, jolloin `Authorization`-header säilyy ja `Content-Type` lisätään rinnalle. `JSON.stringify()` muuttaa JavaScript-objektin JSON-merkkijonoksi, jotta palvelin voi lukea sen `express.json()`-middlewarella.
+
+---
+
+## fetch-funktio ja API-kutsut
+
+### apiKutsu-funktio
+
+Kaikki API-kutsut kulkevat yhden `apiKutsu`-funktion kautta:
+
+```typescript
+const apiKutsu = async (
+  metodi?: string,
+  ostos?: Ostos,
+  id?: number
+): Promise<void> => { ... };
+```
+
+Funktio on `async`, koska `fetch()` on asynkroninen operaatio, joka palauttaa `Promise`-objektin. `await`-avainsanalla odotetaan vastauksen saapumista ennen jatkamista.
+
+Funktiota kutsutaan eri tavoin riippuen tilanteesta:
+
+| Tilanne | Kutsu | HTTP-metodi | URL |
+|---|---|---|---|
+| Sivun lataus | `apiKutsu()` | GET | `/api/ostokset` |
+| Tuotteen lisäys | `apiKutsu("POST", ostos)` | POST | `/api/ostokset` |
+| Tuotteen poisto | `apiKutsu("DELETE", undefined, id)` | DELETE | `/api/ostokset/:id` |
+
+### URL:n muodostaminen
+
+```typescript
+const url: string = id
+  ? `http://localhost:3007/api/ostokset/${id}`
+  : `http://localhost:3007/api/ostokset`;
+```
+
+Jos `id` on annettu (DELETE, PUT), se liitetään URL:n perään. Muuten käytetään perus-URL:ää.
+
+### Vastauksen käsittely
+
+```typescript
+const yhteys = await fetch(url, asetukset);
+
+if (yhteys.status === 200) {
+  setApiData({
+    ...apiData,
+    ostokset: await yhteys.json(),
+    haettu: true,
+  });
+}
+```
+
+`fetch()` palauttaa `Response`-objektin, josta luetaan `status`-koodi ja vastauksen sisältö. `yhteys.json()` parsii JSON-muotoisen vastauksen JavaScript-objektiksi. Tämäkin on asynkroninen operaatio, joten se vaatii `await`-avainsanan.
+
+### Virhekäsittely
+
+Virheitä käsitellään kahdella tasolla:
+
+**HTTP-statuskoodit** (palvelin vastasi, mutta pyyntö epäonnistui):
+
+```typescript
+switch (yhteys.status) {
+  case 400:
+    virheteksti = "Virhe pyynnön tiedoissa";
+    break;
+  case 401:
+    virheteksti = "Virheellinen token";
+    break;
+  default:
+    virheteksti = "Palvelimella tapahtui odottamaton virhe";
+    break;
+}
+```
+
+**Verkkovirhe** (palvelimeen ei saada yhteyttä lainkaan):
+
+```typescript
+catch (e: any) {
+  setApiData({
+    ...apiData,
+    virhe: "Palvelimeen ei saada yhteyttä",
+    haettu: true,
+  });
+}
+```
+
+`try/catch` nappaa virheet, jotka syntyvät ennen HTTP-vastauksen saapumista: esimerkiksi palvelin ei ole käynnissä tai verkkoyhteydessä on ongelma. `401`-käsittely on uusi demossa 7 ja liittyy JWT-tokenin tarkistukseen.
+
+---
+
+## React-rakenne
+
+### Tilamuuttuja (useState)
+
+```typescript
 const [apiData, setApiData] = useState<ApiData>({
   ostokset: [],
-  virhe: '',
+  virhe: "",
   haettu: false,
 });
 ```
 
-- `lomakeRef` — viittaus lomake-elementtiin, jonka kautta luetaan tekstikentän arvo
-- `apiData` — sovelluksen tila: lista ostoksista, mahdollinen virheteksti ja latauksen tila
+Koko API-vastaus hallitaan yhdellä tilamuuttujalla, jolla on kolme kenttää. Tämä yksinkertaistaa koodia verrattuna kolmen erillisen tilamuuttujan käyttöön. `haettu: false` on alkutila, jolloin näytetään latausanimaatio.
 
-#### 5.3 apiKutsu-funktio ja Authorization-header
+### Lomakeviittaus (useRef)
 
-Tässä on demo 7:n keskeisin muutos demo 6:een verrattuna:
-
-```tsx
-const apiKutsu = async (metodi?: string, ostos?: Ostos, id?: number): Promise<void> => {
-  setApiData((prev) => ({ ...prev, haettu: false }));
-
-  const url = id
-    ? `http://localhost:3007/api/ostokset/${id}`
-    : 'http://localhost:3007/api/ostokset';
-
-  // Authorization-header lähetetään mukana jokaisessa pyynnössä
-  let asetukset: RequestInit = {
-    method: metodi ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${JWT_TOKEN}`,
-    },
-  };
-
-  if (metodi === 'POST') {
-    asetukset = {
-      ...asetukset,
-      headers: {
-        ...(asetukset.headers as Record<string, string>),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ostos),
-    };
-  }
-
-  try {
-    const yhteys = await fetch(url, asetukset);
-
-    if (yhteys.status === 200 || yhteys.status === 201) {
-      const data: Ostos[] = await yhteys.json() as Ostos[];
-      setApiData({ ostokset: data, virhe: '', haettu: true });
-    } else {
-      let virheteksti: string;
-      switch (yhteys.status) {
-        case 400: virheteksti = 'Virhe pyynnön tiedoissa'; break;
-        case 401: virheteksti = 'Virheellinen token'; break;
-        default:  virheteksti = 'Palvelimella tapahtui odottamaton virhe'; break;
-      }
-      setApiData((prev) => ({ ...prev, virhe: virheteksti, haettu: true }));
-    }
-  } catch {
-    setApiData((prev) => ({ ...prev, virhe: 'Palvelimeen ei saada yhteyttä', haettu: true }));
-  }
-};
+```typescript
+const lomakeRef = useRef<HTMLFormElement>(null);
 ```
 
-**Demo 7:n muutokset demo 6:een verrattuna:**
+`useRef` luo viittauksen DOM-elementtiin. Lomakeviittauksella päästään käsiksi lomakkeen kenttien arvoihin ilman erillistä tilamuuttujaa jokaiselle kentälle. Arvo luetaan lomakkeesta: `lomakeRef.current?.uusiTuote.value`.
 
-1. **Authorization-header jokaisessa pyynnössä:**
-   ```tsx
-   headers: {
-     Authorization: `Bearer ${JWT_TOKEN}`,
-   }
-   ```
-   Header lähetetään jo perustasolla ennen kuin tarkistetaan, onko kyseessä POST. Näin se on mukana GET-, DELETE- ja POST-pyynnöissä automaattisesti.
+### Sivun lataus (useEffect)
 
-2. **Spread-operaattori POST-pyynnössä:**
-   ```tsx
-   headers: {
-     ...(asetukset.headers as Record<string, string>),
-     'Content-Type': 'application/json',
-   }
-   ```
-   POST-pyyntöön lisätään `Content-Type`, mutta olemassa oleva `Authorization` säilytetään spread-operaattorilla (`...`). Ilman spreadia Authorization ylikirjoittuisi.
-
-3. **Uusi virheenkäsittely statuskoodille 401:**
-   ```tsx
-   case 401: virheteksti = 'Virheellinen token'; break;
-   ```
-   Jos palvelin hylkää pyynnön väärän tai puuttuvan tokenin takia, käyttäjälle näytetään selkeä virheilmoitus.
-
-#### 5.4 Käyttöliittymä
-
-```tsx
-return (
-  <Container>
-    <Typography variant="h5">Demo 7: JWT-autorisointi</Typography>
-    <Typography variant="h6" sx={{ marginBottom: 2, marginTop: 2 }}>Ostoslista</Typography>
-
-    {apiData.virhe
-      ? <Alert severity="error">{apiData.virhe}</Alert>
-      : apiData.haettu
-        ? <Stack component="form" onSubmit={lisaaTuote} ref={lomakeRef} spacing={2}>
-            <List>
-              {apiData.ostokset.map((ostos, idx) => (
-                <ListItem
-                  key={idx}
-                  secondaryAction={
-                    <IconButton edge="end" onClick={() => { poistaTuote(ostos); }}>
-                      <DeleteIcon />
-                    </IconButton>
-                  }
-                >
-                  <ListItemText primary={ostos.tuote} />
-                </ListItem>
-              ))}
-            </List>
-            <TextField name="uusiTuote" fullWidth placeholder="Kirjoita tähän uusi tuote..." />
-            <Button type="submit" variant="contained" size="large" fullWidth>
-              Lisää tuote ostoslistaan
-            </Button>
-          </Stack>
-        : <Backdrop open><CircularProgress color="inherit" /></Backdrop>
-    }
-  </Container>
-);
+```typescript
+useEffect(() => {
+  apiKutsu();
+}, []);
 ```
 
-Käyttöliittymä näyttää kolme eri tilaa:
+`useEffect` tyhjällä riippuvuustaulukolla (`[]`) suoritetaan kerran komponentin liittyessä DOM:iin (mount). Se hakee ostoslistan palvelimelta heti, kun sivu avautuu.
 
-| Tila                          | Mitä renderöidään             |
-|-------------------------------|-------------------------------|
-| `apiData.virhe` on asetettu   | Punainen `Alert`-ilmoitus     |
-| `apiData.haettu === true`     | Ostoslista ja lomake          |
-| `apiData.haettu === false`    | Latausympyrä (`Backdrop`)     |
+### Ehdollinen renderöinti
+
+Sovelluksessa on kolme eri näkymää, jotka valitaan ehdollisesti:
+
+```
+apiData.virhe on asetettu?
+├── Kyllä → Virheilmoitus (Alert)
+└── Ei
+    └── apiData.haettu on true?
+        ├── Kyllä → Ostoslista + lomake
+        └── Ei → Latausanimaatio (Backdrop + CircularProgress)
+```
+
+Tämä toteutetaan JSX:ssä ternary-operaattorilla (`? :`). Ensin tarkistetaan virhe, sitten latauksen tila, ja vasta viimeisenä näytetään varsinainen sisältö.
 
 ---
 
-## 4. Tokenin vaihtaminen
+## Käytetyt MUI-komponentit
 
-Sovellus käyttää `App.tsx`:n alussa määritettyä vakiota `JWT_TOKEN`. Jos token ei toimi (palvelin palauttaa 401), voidaan generoida uusi token palvelimen puolella:
+| Komponentti | Rooli sovelluksessa |
+|---|---|
+| `Container` | Keskittää sisällön ja rajaa maksimileveyden |
+| `Typography` | Otsikot (`h5`, `h6`) |
+| `Alert` | Virheilmoituksen näyttäminen punaisella pohjalla |
+| `List` / `ListItem` / `ListItemText` | Ostoslistan renderöinti |
+| `IconButton` + `DeleteIcon` | Poistopainike jokaisen tuotteen rivillä |
+| `TextField` | Tekstikenttä uuden tuotteen nimelle |
+| `Button` | Lomakkeen lähetyspainike ("Lisää tuote ostoslistaan") |
+| `Stack` | Pinoaa lapsikomponentit pystysuunnassa tasavälein (`spacing={2}`) |
+| `Backdrop` + `CircularProgress` | Peittää sivun pyörivällä latausanimaatiolla |
 
-```bash
-# Palvelinkansion juuressa (server/)
-node luoJWT.js
-```
-
-Kopioidaan tulostettu token `App.tsx`:n `JWT_TOKEN`-vakioon.
-
----
-
-## 5. Sovelluksen käynnistäminen
-
-Käynnistetään ensin Express-palvelin (`server/`-kansiossa):
-
-```bash
-npm run dev
-```
-
-Sitten React-asiakassovellus (`client/`-kansiossa):
-
-```bash
-npm run dev
-```
-
-Asiakassovellus käynnistyy osoitteeseen `http://localhost:3000` ja on valmis kommunikoimaan palvelimen kanssa osoitteessa `http://localhost:3007`.
+`Stack` toimii samalla lomakkeena (`component="form"`), jolloin `onSubmit`-tapahtuma laukeaa enteriä painamalla tai painiketta klikkaamalla.
 
 ---
 
-## 6. Tokenin testaaminen
+## Tiedostorakenne
 
-**Oikealla tokenilla:** Sovellus lataa ostoslistan normaalisti.
+```
+client/src/
+├── App.tsx        # Koko sovelluksen logiikka ja käyttöliittymä
+└── main.tsx       # React-sovelluksen liittäminen DOM:iin + Roboto-fontti
+```
 
-**Väärällä tokenilla:** Vaihdetaan `JWT_TOKEN`-vakion arvo virheelliseksi merkkijonoksi (esim. `'vaaratoken'`). Sovellus näyttää punaisen virheilmoituksen: *"Virheellinen token"*.
-
-Tämä havainnollistaa, miten palvelin hylkää kaikki pyynnöt, joiden token ei täsmää palvelimen salaista avainta.
+Demossa 7 koko asiakassovellus on yhdessä `App.tsx`-tiedostossa. Demossa 8 sovellus jaetaan erillisiin komponentteihin (`Login.tsx`, `Ostoslista.tsx`), kun käyttäjänhallinta otetaan käyttöön.
