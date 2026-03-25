@@ -2,7 +2,7 @@
 
 Tämä on demon 7 React-asiakassovellus, joka kommunikoi Express-palvelimen kanssa JWT-autorisoiduilla API-kutsuilla. Sovellus on ostoslista, johon voidaan lisätä ja poistaa tuotteita.
 
-Vite-projektin alustaminen tyhjästä on kuvattu erillisessä ohjeessa: **[VITE_ALUSTUS.md](./VITE_ALUSTUS.md)**.
+Vite-projektin alustaminen tyhjästä on kuvattu erillisessä ohjeessa: **[Vite-asennus.md](./Vite-asennus.md)**.
 
 ---
 
