@@ -1,172 +1,169 @@
 # Demo 7: JWT-autorisointi
 
-## 1. Lähtötilanne ja motivaatio
+## Oppimistavoitteet
 
-Demo 7 jatkaa demo 6:n ostoslista-sovelluksesta. Edellisessä demossa palvelin suojattiin CORS-middlewarella, joka rajoittaa selainsovelluksien pääsyä eri originista. Tämä ei kuitenkaan estä pyyntöjä Postman-ohjelmasta tai komentorivityökaluista kuten `curl` — ne eivät välitä CORS-säännöistä lainkaan.
-
-Tässä demossa otetaan käyttöön JWT-pohjainen (JSON Web Token) autorisointi, joka toimii palvelinpuolella. Palvelin tarkistaa jokaisen pyynnön yhteydessä, että mukana on oikea token. Ilman tokenia pyyntö hylätään — oli lähettäjä sitten selain, Postman tai mikä tahansa muu ohjelma.
-
-Sovelluksen REST API -päätepisteet ovat samat kuin demo 6:ssa:
-
-| Metodi | Polku                  | Toiminto                                            |
-|--------|------------------------|-----------------------------------------------------|
-| GET    | /api/ostokset          | Palauttaa kaikki ostokset                           |
-| GET    | /api/ostokset/:id      | Palauttaa yksittäisen ostoksen                      |
-| POST   | /api/ostokset          | Lisää uuden ostoksen, palauttaa päivitetyn listan   |
-| PUT    | /api/ostokset/:id      | Päivittää ostoksen kentät                           |
-| DELETE | /api/ostokset/:id      | Poistaa ostoksen, palauttaa päivitetyn listan       |
+Tämän demon jälkeen opiskelija osaa:
+- selittää, mitä JWT (JSON Web Token) on ja mihin sitä käytetään
+- luoda JWT-tokenin `jsonwebtoken`-kirjastolla
+- toteuttaa Express-middlewaren, joka tarkistaa tokenin pyynnön `Authorization`-headerista
+- lisätä JWT-tokenin asiakassovelluksen fetch-kutsuihin
+- tunnistaa tässä demossa käytetyn toteutustavan tietoturvariskin
 
 ---
 
-## 2. JWT:n perusteet
+## 1. JWT-autorisointi
 
-### Mikä JWT on?
+### Mitä JWT on?
 
-JSON Web Token (JWT) on avoimen standardin mukainen tapa siirtää tietoa turvallisesti osapuolten välillä kompaktina merkkijonona. Token on digitaalisesti allekirjoitettu, joten sen aitous voidaan varmistaa.
+**JWT (JSON Web Token)** on avoin standardi (RFC 7519), jolla osapuolet voivat välittää tietoa turvallisesti JSON-muodossa. Token allekirjoitetaan salaisella avaimella, jolloin vastaanottaja voi varmistaa tokenin aitouden.
 
-JWT koostuu kolmesta pisteellä (`.`) erotetusta osasta:
+JWT koostuu kolmesta osasta, jotka erotetaan pisteillä:
 
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDIyMDMzNDh9.0OqTw4sohQE6UdVF8nRAAiMOwNK95mSwPOCbdgLjmgo
+HEADER.PAYLOAD.SIGNATURE
 ```
 
-| Osa           | Sisältö                                                        |
-|---------------|----------------------------------------------------------------|
-| **Header**    | Käytetty salausalgoritmi (esim. `HS256`)                       |
-| **Payload**   | Varsinainen data — voi sisältää mitä tahansa JSON-kenttää      |
-| **Signature** | Digitaalinen allekirjoitus, joka varmistaa tokenin aitouden    |
+| Osa | Sisältö |
+|---|---|
+| **Header** | Algoritmi (esim. HS256) ja tokenin tyyppi (JWT) |
+| **Payload** | Tokenin sisältämä data (esim. käyttäjätiedot, luontiaika) |
+| **Signature** | Allekirjoitus, joka lasketaan headerin, payloadin ja salaisen avaimen perusteella |
 
-Tärkeä periaate: vain salaisen avaimen haltija voi luoda oikeita tokeneita. Kuka tahansa voi _lukea_ tokenin sisällön, mutta allekirjoitusta ei voi väärentää ilman avainta.
+### Autorisointi ja autentikointi
 
-### Autorisointi vs. autentikointi
+| Käsite | Merkitys |
+|---|---|
+| **Autentikointi** | Käyttäjän tunnistaminen (kuka olet?) |
+| **Autorisointi** | Käyttöoikeuksien tarkistaminen (mitä saat tehdä?) |
 
-Nämä kaksi käsitettä sekoitetaan usein:
+Tässä demossa keskitytään **autorisointiin**: palvelin tarkistaa, onko asiakassovelluksella oikeus käyttää sen resursseja. Aiemmissa demoissa CORS-säännöillä rajoitettiin selainpohjaisten yhteyksien lähteitä, mutta CORS ei estä yhteydenottoa esimerkiksi Postmanilla tai `curl`-komennolla. JWT-tokeneilla voidaan rajoittaa pääsyä tarkemmin.
 
-- **Autentikointi** — *kuka olet?* (esim. kirjautuminen käyttäjätunnuksella ja salasanalla)
-- **Autorisointi** — *mihin sinulla on oikeus?* (esim. onko sinulla lupa käyttää tätä API:a)
+### Tokenin käyttö tässä demossa
 
-Tässä demossa toteutetaan vain autorisointi: palvelin ei vielä tunnista käyttäjiä, mutta se tarkistaa, että pyyntöön on liitetty oikea token. Seuraavassa demossa lisätään myös autentikointi.
+Demossa JWT-token luodaan erillisellä aputiedostolla (`luoJWT.js`) ja liitetään manuaalisesti asiakassovelluksen lähdekoodiin. Palvelin tarkistaa jokaisen pyynnön `Authorization`-headerin ja päästää pyynnön läpi vain, jos token on validi.
 
-### Miksi JWT on parempi kuin pelkkä CORS?
+> **Huomio:** Tässä demossa token on kovakoodattu asiakassovelluksen lähdekoodiin. Tämä on **tietoturvariski**, eikä näin tehtäisi tuotantosovelluksessa. Seuraavassa demossa (demo 8) toteutetaan turvallisempi tapa: token luodaan ohjelmallisesti onnistuneen kirjautumisen perusteella.
 
-| Ominaisuus               | CORS                          | JWT                              |
-|--------------------------|-------------------------------|----------------------------------|
-| Suojaa selainsovelluksia | Kyllä                         | Kyllä                            |
-| Suojaa Postmanilta       | Ei                            | Kyllä                            |
-| Suojaa curl-pyynnöiltä   | Ei                            | Kyllä                            |
-| Toteutetaan palvelimella | Ei (selain tarkistaa)         | Kyllä                            |
+### Demosovellus
+
+Demosovellus jatkaa aiempien demojen ostoslistasovellusta. Palvelimen REST API -reitit pysyvät samoina kuin demossa 6. Uutena ominaisuutena lisätään JWT-middleware, joka tarkistaa tokenin ennen kuin pyyntö pääsee API-reiteille.
+
+Asiakassovellukseen lisätään `Authorization`-header jokaiseen fetch-kutsuun. Lisäksi virheenkäsittelyyn lisätään 401 (Unauthorized) -statuskoodi.
+
+| Metodi | Reitti | Kuvaus |
+|---|---|---|
+| GET | `/api/ostokset` | Hakee kaikki ostokset |
+| GET | `/api/ostokset/:id` | Hakee yksittäisen ostoksen |
+| POST | `/api/ostokset` | Lisää uuden ostoksen |
+| PUT | `/api/ostokset/:id` | Päivittää ostoksen |
+| DELETE | `/api/ostokset/:id` | Poistaa ostoksen |
+
+Muutos demo 6:een verrattuna: jokainen pyyntö vaatii validin JWT-tokenin `Authorization`-headerissa muodossa `Bearer <token>`.
 
 ---
 
-## 3. Demosovelluksen rakentuminen vaihe vaiheelta
+## 2. Demosovelluksen rakentuminen vaihe vaiheelta
 
-### Vaihe 1: Projektin alustaminen
+### Vaihe 1: Palvelinprojektin alustaminen
 
-Luodaan palvelimelle oma kansio demo07:n sisälle:
-
-```bash
-mkdir demo07/server
-cd demo07/server
-```
-
-Alustetaan Node.js-projekti:
+Luodaan uusi projektikansio ja alustetaan Node.js-projekti:
 
 ```bash
+mkdir demo07
+cd demo07
 npm init -y
 ```
 
-### Vaihe 2: Riippuvuuksien asentaminen
-
-Demo 7 perustuu demo 6:n rakenteeseen. Uutena pakettina lisätään `jsonwebtoken`:
-
-```bash
-npm install express cors jsonwebtoken
-npm install --save-dev typescript tsx @types/node @types/express @types/cors @types/jsonwebtoken
-
-# Prisma-paketit
-npm install --save-dev prisma @types/better-sqlite3
-npm install @prisma/client @prisma/adapter-better-sqlite3 dotenv
-```
-
-Asennuksen jälkeen `package.json` tulisi näyttää tältä:
+Avataan `package.json` ja muokataan se seuraavanlaiseksi:
 
 ```json
 {
-  "name": "server",
+  "name": "demo07",
   "version": "1.0.0",
+  "description": "",
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
-    "dev": "tsx watch index.ts",
-    "type-check": "tsc --noEmit"
+    "start": "npx nodemon --exec tsx index.ts"
   },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.x.x",
-    "@types/cors": "^2.x.x",
-    "@types/express": "^5.x.x",
-    "@types/jsonwebtoken": "^9.x.x",
-    "@types/node": "^x.x.x",
-    "prisma": "^7.x.x",
-    "tsx": "^4.x.x",
-    "typescript": "^5.x.x"
-  },
-  "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.x.x",
-    "@prisma/client": "^7.x.x",
-    "cors": "^2.x.x",
-    "dotenv": "^x.x.x",
-    "express": "^5.x.x",
-    "jsonwebtoken": "^9.x.x"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
 ```
 
-### Vaihe 3: TypeScript-konfiguraatio
+`"type": "module"` määrittää projektin käyttämään ESM-moduuleja (ECMAScript Modules). Tämä on Prisma 7:n vaatimus. `tsx` on TypeScript-suoritusympäristö, joka korvaa aiemmin käytetyn `ts-node`-työkalun ja toimii ESM-projektien kanssa.
 
-`tsconfig.json` on identtinen demo 6:n konfiguraation kanssa:
+### Vaihe 2: Riippuvuuksien asentaminen
+
+Asennetaan tuotantoriippuvuudet:
+
+```bash
+npm install express cors jsonwebtoken @prisma/client @prisma/adapter-better-sqlite3 dotenv
+```
+
+Asennetaan kehitysriippuvuudet:
+
+```bash
+npm install -D typescript @types/express @types/cors @types/jsonwebtoken @types/node @types/better-sqlite3 prisma nodemon tsx
+```
+
+| Paketti | Tarkoitus |
+|---|---|
+| `express` | HTTP-palvelinkehys |
+| `cors` | CORS-middleware |
+| `jsonwebtoken` | JWT-tokenien luonti ja tarkistus |
+| `@prisma/client` | Prisma Client -ajonaikainen kirjasto |
+| `@prisma/adapter-better-sqlite3` | SQLite-tietokanta-adapteri Prisma 7:lle |
+| `dotenv` | Ympäristömuuttujien lataaminen `.env`-tiedostosta |
+| `prisma` | Prisma CLI (kehitystyökalu) |
+| `tsx` | TypeScript-suoritusympäristö ESM-projekteille |
+| `nodemon` | Automaattinen uudelleenkäynnistys koodien muuttuessa |
+
+### Vaihe 3: TypeScript-asetukset
+
+Luodaan `tsconfig.json` projektin juureen:
 
 ```json
 {
   "compilerOptions": {
-    "module": "preserve",
-    "target": "esnext",
-    "lib": ["esnext"],
-    "types": ["node"],
-    "sourceMap": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2023",
     "strict": true,
-    "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "allowJs": true,
-    "declaration": true,
-    "declarationMap": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noUncheckedSideEffectImports": true,
-    "noUncheckedIndexedAccess": true,
-    "verbatimModuleSyntax": true
-  }
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "generated"]
 }
 ```
 
-### Vaihe 4: Prisma-projektin alustaminen
+Prisma 7 edellyttää ESM-yhteensopivia TypeScript-asetuksia. `"module": "ESNext"` ja `"moduleResolution": "bundler"` varmistavat, että importit toimivat oikein.
 
-Alustetaan Prisma SQLite-tietokannalla:
+### Vaihe 4: Prisman käyttöönotto (Prisma 7)
+
+Alustetaan Prisma:
 
 ```bash
 npx prisma init --datasource-provider sqlite --output ../generated/prisma
 ```
 
-`.env`-tiedostossa määritetään tietokantatiedoston polku:
+Komento luo kaksi tiedostoa:
+- `prisma/schema.prisma` (tietomalli)
+- `.env` (ympäristömuuttujat)
 
-```
-DATABASE_URL="file:./dev.db"
-```
+**Prisma 7:n keskeiset erot aiempiin versioihin:**
 
-### Vaihe 5: Tietomallin määrittely (prisma/schema.prisma)
+| Prisma 6 | Prisma 7 |
+|---|---|
+| `provider = "prisma-client-js"` | `provider = "prisma-client"` |
+| Client generoituu `node_modules`-kansioon | Client generoituu projektin `generated/prisma`-kansioon |
+| Tietokanta-URL schemassa | Tietokanta-URL `prisma.config.ts`-tiedostossa |
+| Ei vaadi adapteria | Vaatii tietokanta-adapterin |
 
-`Ostos`-malli on identtinen demo 6:n kanssa:
+**Muokataan `prisma/schema.prisma`:**
 
 ```prisma
 generator client {
@@ -185,294 +182,729 @@ model Ostos {
 }
 ```
 
-### Vaihe 6: Migraatio ja Prisma Clientin generointi
+`provider = "prisma-client"` on Prisma 7:n uusi, Rust-vapaa client-generaattori. `output`-kenttä määrittää, mihin generoitu koodi tallennetaan.
+
+**Luodaan `prisma.config.ts` projektin juureen:**
+
+```typescript
+import "dotenv/config";
+import { defineConfig } from "prisma/config";
+
+export default defineConfig({
+  schema: "./prisma/schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL || "file:./prisma/data.db",
+  },
+});
+```
+
+`prisma.config.ts` on Prisma 7:n uusi konfiguraatiotiedosto. Tietokanta-URL määritetään täällä eikä enää `schema.prisma`-tiedostossa. `dotenv/config`-importti lataa ympäristömuuttujat `.env`-tiedostosta automaattisesti.
+
+**Muokataan `.env`-tiedosto:**
+
+```
+DATABASE_URL="file:./prisma/data.db"
+```
+
+**Luodaan tietokanta ja generoidaan Prisma Client:**
 
 ```bash
 npx prisma migrate dev --name init
+```
+
+Komento luo migraation `prisma/migrations`-kansioon, luo SQLite-tietokantatiedoston ja generoi Prisma Clientin `generated/prisma`-kansioon.
+
+Vaihtoehtoisesti Prisma Client voidaan generoida erikseen:
+
+```bash
 npx prisma generate
 ```
 
-### Vaihe 7: Prisma Clientin alustus (lib/prisma.ts)
+### Vaihe 5: Prisma Client -moduuli
 
-Tiedosto on identtinen demo 6:n kanssa:
+Luodaan `lib/prisma.ts`:
 
 ```typescript
-import 'dotenv/config';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '../generated/prisma/client.ts';
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "./generated/prisma/client.js";
 
-const connectionString = process.env['DATABASE_URL'] ?? 'file:./dev.db';
-const adapter = new PrismaBetterSqlite3({ url: connectionString });
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL || "file:./prisma/data.db",
+});
+
 const prisma = new PrismaClient({ adapter });
 
-export { prisma };
+export default prisma;
 ```
 
-### Vaihe 8: Virhekäsittelijä (errors/virhekasittelija.ts)
+Prisma 7 vaatii **tietokanta-adapterin** käytettävän tietokannan mukaan. SQLite-tietokannalle käytetään `@prisma/adapter-better-sqlite3`-adapteria. Adapteri annetaan `PrismaClient`-konstruktorille.
 
-Kopioidaan virhekäsittelijä demo 6:sta sellaisenaan:
+> **Huomio:** `PrismaClient` importataan generoitujen tiedostojen polusta (`./generated/prisma/client.js`), ei enää `@prisma/client`-paketista.
 
-```typescript
-import express from 'express';
+### Vaihe 6: JWT-tokenin luominen
 
-export class Virhe extends Error {
-    status: number;
-    viesti: string;
-    constructor(status?: number, viesti?: string) {
-        super(viesti);
-        this.status = status || 500;
-        this.viesti = viesti || 'Palvelimella tapahtui odottamaton virhe';
-    }
-}
-
-const virhekasittelija = (err: Virhe, _req: express.Request, res: express.Response, _next: express.NextFunction): void => {
-    res.status(err.status).json({ viesti: err.viesti });
-};
-
-export default virhekasittelija;
-```
-
-### Vaihe 9: Reitinkäsittelijät (routes/apiOstokset.ts)
-
-Reitit ovat identtiset demo 6:n kanssa — JWT-tarkistus tapahtuu ennen reittejä palvelimen pääohjelmassa, joten reittitiedostoon ei tarvita muutoksia:
-
-```typescript
-import express from 'express';
-import { prisma } from '../lib/prisma';
-import { Virhe } from '../errors/virhekasittelija';
-
-const apiOstoksetRouter: express.Router = express.Router();
-apiOstoksetRouter.use(express.json());
-
-apiOstoksetRouter.get('/', async (_req: express.Request, res: express.Response) => {
-    const ostokset = await prisma.ostos.findMany();
-    res.json(ostokset);
-});
-
-apiOstoksetRouter.get('/:id', async (req: express.Request, res: express.Response) => {
-    const ostos = await prisma.ostos.findUnique({ where: { id: Number(req.params['id']) } });
-    if (!ostos) throw new Virhe(404, 'Ostosta ei löytynyt');
-    res.json(ostos);
-});
-
-apiOstoksetRouter.post('/', async (req: express.Request, res: express.Response) => {
-    if (!req.body.tuote) throw new Virhe(400, 'Virheellinen pyynnön body');
-    await prisma.ostos.create({ data: { tuote: req.body.tuote, poimittu: false } });
-    const ostokset = await prisma.ostos.findMany();
-    res.status(201).json(ostokset);
-});
-
-apiOstoksetRouter.put('/:id', async (req: express.Request, res: express.Response) => {
-    const ostos = await prisma.ostos.findUnique({ where: { id: Number(req.params['id']) } });
-    if (!ostos) throw new Virhe(404, 'Ostosta ei löydy');
-    if (req.body.tuote === undefined && req.body.poimittu === undefined) throw new Virhe(400, 'Virheellinen pyynnön body');
-    const paivitettyOstos = await prisma.ostos.update({
-        where: { id: Number(req.params['id']) },
-        data: {
-            tuote: req.body.tuote ?? ostos.tuote,
-            poimittu: req.body.poimittu ?? ostos.poimittu,
-        },
-    });
-    res.json(paivitettyOstos);
-});
-
-apiOstoksetRouter.delete('/:id', async (req: express.Request, res: express.Response) => {
-    const ostos = await prisma.ostos.findUnique({ where: { id: Number(req.params['id']) } });
-    if (!ostos) throw new Virhe(404, 'Ostosta ei löytynyt');
-    await prisma.ostos.delete({ where: { id: Number(req.params['id']) } });
-    const ostokset = await prisma.ostos.findMany();
-    res.json(ostokset);
-});
-
-export default apiOstoksetRouter;
-```
-
-### Vaihe 10: JWT-tokenin luominen (luoJWT.js)
-
-Ennen palvelimen pääohjelman kirjoittamista tarvitaan token, joka kovakoodataan demoamistarkoituksessa asiakassovellukseen. Token luodaan erillisellä apuohjelmalla.
-
-Luodaan palvelinsovelluksen juureen tiedosto `luoJWT.js`. Tiedosto on tavallista JavaScript-koodia, jotta se voidaan suorittaa suoraan Node.js:llä:
+Luodaan aputiedosto `luoJWT.js` projektin juureen:
 
 ```javascript
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
-const token = jwt.sign({}, 'SalausLause_25');
+const token = jwt.sign({}, "SalausLause_25");
 
 console.log(token);
 ```
 
-Tiedoston toiminta:
+`jwt.sign(payload, salaisuus)` luo uuden JWT-tokenin. Ensimmäinen parametri on tokenin payload (tässä tyhjä objekti) ja toinen parametri on salainen avain, jolla token allekirjoitetaan. Salaisen avaimen tulee olla sama sekä tokenin luonnissa että tarkistuksessa.
 
-1. Tuodaan `jsonwebtoken`-kirjasto ES-moduuli-importilla
-2. Kutsutaan `sign`-metodia kahdella argumentilla:
-   - Tyhjä objekti `{}` — payload, joka voi sisältää mitä tahansa dataa (tässä tyhjä)
-   - Merkkijono `'SalausLause_25'` — salainen avain, jolla token allekirjoitetaan
-3. Tulostetaan luotu token konsoliin
-
-Suoritetaan ohjelma terminaalissa:
+Suoritetaan tiedosto:
 
 ```bash
 node luoJWT.js
 ```
 
-Ohjelma tulostaa pitkän merkkijonon, esimerkiksi:
+Terminaaliin tulostuu token, esimerkiksi:
 
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDIyMDMzNDh9.0OqTw4sohQE6UdVF8nRAAiMOwNK95mSwPOCbdgLjmgo
 ```
 
-Tämä token kopioidaan talteen — sitä tarvitaan Postman-testauksessa ja myöhemmin asiakassovelluksessa.
+Token koostuu kolmesta Base64-koodatusta osasta, jotka erotetaan pisteillä. Kopioidaan token talteen; sitä tarvitaan asiakassovelluksessa.
 
-**Huomio salaisesta avaimesta:** `'SalausLause_25'` on esimerkki. Oikeassa tuotantosovelluksessa käytettäisiin ympäristömuuttujaa (`process.env.JWT_SECRET`), ei koodiin kovakoodattua arvoa.
+> **Huomio:** Salainen avain (`"SalausLause_25"`) on tässä esimerkissä kovakoodattu. Tuotantosovelluksessa salainen avain tallennetaan ympäristömuuttujaan.
 
-### Vaihe 11: Palvelimen pääohjelma (index.ts)
+### Vaihe 7: Virhekäsittelijä
 
-Tässä on tämän demon ydinmuutos demo 6:een verrattuna. Palvelimen pääohjelmaan lisätään JWT-middleware ennen reittejä:
+Luodaan kansio `errors` ja tiedosto `errors/virhekasittelija.ts`:
 
 ```typescript
-import express from 'express';
-import path from 'path';
-import cors from 'cors';
-import jwt from 'jsonwebtoken';
-import apiOstoksetRouter from './routes/apiOstokset';
-import virhekasittelija from './errors/virhekasittelija';
+import express from "express";
+
+export class Virhe extends Error {
+  status: number;
+  viesti: string;
+
+  constructor(status?: number, viesti?: string) {
+    super();
+    this.status = status || 500;
+    this.viesti = viesti || "Palvelimella tapahtui odottamaton virhe";
+  }
+}
+
+const virhekasittelija = (
+  err: Virhe,
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+): void => {
+  res.status(err.status).json({ virhe: err.viesti });
+  next();
+};
+
+export default virhekasittelija;
+```
+
+Virhekäsittelijä on sama kuin aiemmissa demoissa. `Virhe`-luokka laajentaa JavaScriptin `Error`-luokkaa ja lisää siihen `status`- ja `viesti`-kentät. Virhekäsittelijä-middleware lähettää virheen JSON-vastauksena oikealla statuskoodilla.
+
+### Vaihe 8: API-reitit
+
+Luodaan kansio `routes` ja tiedosto `routes/apiOstokset.ts`:
+
+```typescript
+import express from "express";
+import { Virhe } from "../errors/virhekasittelija.js";
+import prisma from "../lib/prisma.js";
+
+const apiOstoksetRouter: express.Router = express.Router();
+
+apiOstoksetRouter.use(express.json());
+
+// GET / — Hakee kaikki ostokset
+apiOstoksetRouter.get(
+  "/",
+  async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): Promise<void> => {
+    try {
+      res.json(await prisma.ostos.findMany());
+    } catch (e: any) {
+      next(new Virhe());
+    }
+  }
+);
+
+// GET /:id — Hakee yksittäisen ostoksen
+apiOstoksetRouter.get(
+  "/:id",
+  async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): Promise<void> => {
+    try {
+      const ostos = await prisma.ostos.findUnique({
+        where: {
+          id: Number(req.params.id),
+        },
+      });
+
+      if (ostos) {
+        res.json(ostos);
+      } else {
+        next(new Virhe(400, "Virheellinen id"));
+      }
+    } catch (e: any) {
+      next(new Virhe());
+    }
+  }
+);
+
+// POST / — Lisää uuden ostoksen
+apiOstoksetRouter.post(
+  "/",
+  async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): Promise<void> => {
+    if (req.body.tuote?.length > 0) {
+      try {
+        await prisma.ostos.create({
+          data: {
+            tuote: req.body.tuote,
+            poimittu: Boolean(req.body.poimittu),
+          },
+        });
+
+        res.json(await prisma.ostos.findMany());
+      } catch (e: any) {
+        next(new Virhe());
+      }
+    } else {
+      next(new Virhe(400, "Virheellinen pyynnön body"));
+    }
+  }
+);
+
+// PUT /:id — Päivittää ostoksen
+apiOstoksetRouter.put(
+  "/:id",
+  async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): Promise<void> => {
+    const ostos = await prisma.ostos.findUnique({
+      where: { id: Number(req.params.id) },
+    });
+
+    if (!ostos) {
+      return next(new Virhe(400, "Virheellinen id"));
+    }
+
+    if (
+      req.body.tuote?.length > 0 &&
+      (req.body.poimittu === true || req.body.poimittu === false)
+    ) {
+      try {
+        await prisma.ostos.update({
+          where: { id: Number(req.params.id) },
+          data: {
+            tuote: req.body.tuote,
+            poimittu: req.body.poimittu,
+          },
+        });
+
+        res.json(await prisma.ostos.findMany());
+      } catch (e: any) {
+        next(new Virhe());
+      }
+    } else {
+      next(new Virhe(400, "Virheellinen pyynnön body"));
+    }
+  }
+);
+
+// DELETE /:id — Poistaa ostoksen
+apiOstoksetRouter.delete(
+  "/:id",
+  async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): Promise<void> => {
+    const ostos = await prisma.ostos.findUnique({
+      where: { id: Number(req.params.id) },
+    });
+
+    if (!ostos) {
+      return next(new Virhe(400, "Virheellinen id"));
+    }
+
+    try {
+      await prisma.ostos.delete({
+        where: { id: Number(req.params.id) },
+      });
+
+      res.json(await prisma.ostos.findMany());
+    } catch (e: any) {
+      next(new Virhe());
+    }
+  }
+);
+
+export default apiOstoksetRouter;
+```
+
+Reitit ovat pääosin samat kuin demossa 6. Muutoksena Prisma Client importataan erillisestä `lib/prisma.ts`-moduulista, jossa adapteri on konfiguroitu. Olemassaolon tarkistuksessa käytetään `findUnique()`-metodia `count()`-metodin sijasta: `findUnique()` palauttaa `null`, jos tietuetta ei löydy, jolloin tarkistus on selkeämpi.
+
+> **Huomio:** ESM-moduuleissa import-poluissa käytetään `.js`-tiedostopäätettä, vaikka lähdetiedostot ovat `.ts`-muodossa. Tämä on ESM-standardin vaatimus.
+
+### Vaihe 9: Pääpalvelintiedosto ja JWT-middleware
+
+Luodaan `index.ts` projektin juureen:
+
+```typescript
+import "dotenv/config";
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import apiOstoksetRouter from "./routes/apiOstokset.js";
+import virhekasittelija from "./errors/virhekasittelija.js";
+import jwt from "jsonwebtoken";
+import cors from "cors";
 
 const app: express.Application = express();
 
 const portti: number = Number(process.env.PORT) || 3007;
 
-// Sallitaan CORS asiakassovelluksille (Vite-kehityspalvelin portissa 3000)
-app.use(cors({ origin: 'http://localhost:3000' }));
+// CORS: sallitaan yhteydet Vite-kehityspalvelimelta
+app.use(cors({ origin: "http://localhost:3000" }));
 
-// JWT-autorisoinnin middleware — tarkistaa jokaisen pyynnön tokenin
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+// JWT-middleware: tarkistaa tokenin kaikista pyynnöistä
+app.use(
+  (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): void => {
     try {
-        // Poimitaan Authorization-headerista token (muoto: "Bearer <token>")
-        const token: string = req.headers.authorization!.split(' ')[1]!;
+      const authHeader: string | undefined = req.headers.authorization;
 
-        // Varmennetaan token salaisen avaimen avulla
-        jwt.verify(token, 'SalausLause_25');
+      if (!authHeader) {
+        res.status(401).json({ virhe: "Token puuttuu" });
+        return;
+      }
 
-        // Jos token on oikea, päästetään pyyntö eteenpäin
-        next();
-    } catch (_e) {
-        // Token puuttuu tai on väärä → 401 Unauthorized
-        res.status(401).json({ viesti: 'Virheellinen token' });
+      const token: string = authHeader.split(" ")[1];
+
+      jwt.verify(token, "SalausLause_25");
+
+      next();
+    } catch (e: any) {
+      res.status(401).json({ virhe: "Virheellinen token" });
     }
-});
+  }
+);
 
-app.use((_req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    setTimeout(() => next(), 500);
-});
+// Staattisten tiedostojen tarjoaminen
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.resolve(__dirname, "public")));
 
-app.use(express.static(path.resolve(import.meta.dirname, 'public')));
+// API-reitit
+app.use("/api/ostokset", apiOstoksetRouter);
 
-app.use('/api/ostokset', apiOstoksetRouter);
-
+// Virhekäsittelijä
 app.use(virhekasittelija);
 
+// 404-käsittelijä
+app.use(
+  (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): void => {
+    if (!res.headersSent) {
+      res.status(404).json({ viesti: "Virheellinen reitti" });
+    }
+    next();
+  }
+);
+
 app.listen(portti, (): void => {
-    console.log(`Palvelin käynnistettiin osoitteeseen http://localhost:${portti}`);
+  console.log(`Palvelin käynnistyi osoitteeseen: http://localhost:${portti}`);
 });
 ```
 
-### JWT-middlewaren toiminta vaihe vaiheelta
+**JWT-middleware** on Express-middleware, joka suoritetaan ennen API-reittejä. Se tekee seuraavat asiat:
+
+1. Lukee `Authorization`-headerin pyynnöstä
+2. Erottaa tokenin `Bearer`-etuliitteestä: `"Bearer eyJhbG..."` → `"eyJhbG..."`
+3. Tarkistaa tokenin allekirjoituksen `jwt.verify(token, salaisuus)` -funktiolla
+4. Jos token on validi, kutsutaan `next()` ja pyyntö jatkaa seuraavaan middlewareen
+5. Jos token puuttuu tai on virheellinen, palautetaan `401 Unauthorized`
+
+`jwt.verify()` heittää virheen, jos token on virheellinen tai vanhentunut. Siksi tarkistus tehdään `try/catch`-lohkossa.
+
+> **Huomio:** ESM-moduuleissa `__dirname` ei ole suoraan käytettävissä (toisin kuin CommonJS:ssä). Se muodostetaan `import.meta.url`-arvosta `fileURLToPath()`- ja `path.dirname()`-funktioilla.
+
+---
+
+### Vaihe 10: Asiakassovelluksen luominen
+
+Asiakassovellus luodaan palvelinprojektin juureen `client`-kansioon. Vite-projektin alustus on kuvattu erillisessä ohjeessa: **[Vite-projektin alustusohje](./client/VITE_ALUSTUS.md)**.
+
+Kun Vite-projekti on alustettu ja MUI-riippuvuudet asennettu, muokataan `client/src/App.tsx`:
 
 ```typescript
-const token: string = req.headers.authorization!.split(' ')[1]!;
-```
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Backdrop,
+  Button,
+  CircularProgress,
+  Container,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-- Pyynnön `Authorization`-headerista luetaan arvo
-- Header on muotoa: `"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-- `split(' ')` jakaa merkkijonon välilyönnistä taulukkoon `["Bearer", "token..."]`
-- Indeksillä `[1]` poimitaan varsinainen token ilman `"Bearer"`-etuliitettä
-- Huutomerkki `!` kertoo TypeScriptille, että arvo ei ole `undefined`
-
-```typescript
-jwt.verify(token, 'SalausLause_25');
-```
-
-- `verify`-metodi tarkistaa, että token on allekirjoitettu samalla salaisella avaimella
-- Jos token täsmää, suoritus jatkuu normaalisti `next()`-kutsuun
-- Jos token on väärä tai puuttuu, metodi heittää poikkeuksen ja siirrytään `catch`-lohkoon
-
-```typescript
-catch (_e) {
-    res.status(401).json({ viesti: 'Virheellinen token' });
+interface Ostos {
+  id: number;
+  tuote: string;
+  poimittu: boolean;
 }
+
+interface ApiData {
+  ostokset: Ostos[];
+  virhe: string;
+  haettu: boolean;
+}
+
+interface FetchAsetukset {
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+const TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDIyMDMzNDh9.0OqTw4sohQE6UdVF8nRAAiMOwNK95mSwPOCbdgLjmgo";
+
+const App = () => {
+  const lomakeRef = useRef<HTMLFormElement>(null);
+
+  const [apiData, setApiData] = useState<ApiData>({
+    ostokset: [],
+    virhe: "",
+    haettu: false,
+  });
+
+  const apiKutsu = async (
+    metodi?: string,
+    ostos?: Ostos,
+    id?: number
+  ): Promise<void> => {
+    setApiData({
+      ...apiData,
+      haettu: false,
+    });
+
+    const url: string = id
+      ? `http://localhost:3007/api/ostokset/${id}`
+      : `http://localhost:3007/api/ostokset`;
+
+    let asetukset: FetchAsetukset = {
+      method: metodi || "GET",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+      },
+    };
+
+    if (metodi === "POST") {
+      asetukset = {
+        ...asetukset,
+        headers: {
+          ...asetukset.headers!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ostos),
+      };
+    }
+
+    try {
+      const yhteys = await fetch(url, asetukset);
+
+      if (yhteys.status === 200) {
+        setApiData({
+          ...apiData,
+          ostokset: await yhteys.json(),
+          haettu: true,
+        });
+      } else {
+        let virheteksti: string = "";
+
+        switch (yhteys.status) {
+          case 400:
+            virheteksti = "Virhe pyynnön tiedoissa";
+            break;
+          case 401:
+            virheteksti = "Virheellinen token";
+            break;
+          default:
+            virheteksti = "Palvelimella tapahtui odottamaton virhe";
+            break;
+        }
+
+        setApiData({
+          ...apiData,
+          virhe: virheteksti,
+          haettu: true,
+        });
+      }
+    } catch (e: any) {
+      setApiData({
+        ...apiData,
+        virhe: "Palvelimeen ei saada yhteyttä",
+        haettu: true,
+      });
+    }
+  };
+
+  const poistaTuote = (ostos: Ostos): void => {
+    apiKutsu("DELETE", undefined, ostos.id);
+  };
+
+  const lisaaTuote = (e: React.FormEvent): void => {
+    e.preventDefault();
+
+    apiKutsu("POST", {
+      id: 0,
+      tuote: lomakeRef.current?.uusiTuote.value,
+      poimittu: false,
+    });
+  };
+
+  useEffect(() => {
+    apiKutsu();
+  }, []);
+
+  return (
+    <Container>
+      <Typography variant="h5">Demo 7: JWT-autorisointi</Typography>
+
+      <Typography variant="h6" sx={{ marginBottom: 2, marginTop: 2 }}>
+        Ostoslista
+      </Typography>
+
+      {Boolean(apiData.virhe) ? (
+        <Alert severity="error">{apiData.virhe}</Alert>
+      ) : apiData.haettu ? (
+        <Stack
+          component="form"
+          onSubmit={lisaaTuote}
+          ref={lomakeRef}
+          spacing={2}
+        >
+          <List>
+            {apiData.ostokset.map((ostos: Ostos, idx: number) => {
+              return (
+                <ListItem
+                  key={idx}
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      onClick={() => {
+                        poistaTuote(ostos);
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText primary={ostos.tuote} />
+                </ListItem>
+              );
+            })}
+          </List>
+
+          <TextField
+            name="uusiTuote"
+            fullWidth={true}
+            placeholder="Kirjoita tähän uusi tuote..."
+          />
+
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth={true}
+          >
+            Lisää tuote ostoslistaan
+          </Button>
+        </Stack>
+      ) : (
+        <Backdrop open={true}>
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      )}
+    </Container>
+  );
+};
+
+export default App;
 ```
 
-- Palautetaan HTTP 401 (Unauthorized) -statuskoodi virheviestin kera
-- Pyyntö loppuu tähän, eikä se pääse eteenpäin reittikäsittelijöille
+**Keskeiset muutokset demo 6:een verrattuna:**
 
-**Middlewaren sijainti on kriittinen:** JWT-tarkistus on sijoitettu CORS-asetuksen jälkeen, mutta ennen reittejä. Näin jokainen pyyntö käy automaattisesti läpi autorisoinnin.
+**`TOKEN`-vakio** sisältää vaiheessa 6 luodun JWT-tokenin. Token on sijoitettu moduulitason vakioksi, josta se on helppo löytää.
 
-### Vaihe 12: Palvelimen käynnistäminen
+**`Authorization`-header** lisätään jokaiseen fetch-kutsuun `headers`-objektiin muodossa `"Bearer <token>"`. `Bearer` on standardin mukainen autentikaatiotyyppi, joka kertoo palvelimelle, että headerissa on JWT-token.
+
+**`FetchAsetukset`-interface** on tyypitetty tarkemmin kuin demossa 6. `headers`-kenttä käyttää `Record<string, string>`-tyyppiä `any`-tyypin sijasta.
+
+**401-virheen käsittely** on lisätty `switch`-lauseeseen. Jos palvelin palauttaa 401-statuskoodin, käyttäjälle näytetään "Virheellinen token" -virheilmoitus.
+
+**`main.tsx`** pysyy samana kuin demossa 6:
+
+```typescript
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+### Projektin lopullinen rakenne
+
+```
+demo07/
+├── client/                          # Asiakassovellus (Vite + React)
+│   ├── src/
+│   │   ├── App.tsx                  # Pääkomponentti
+│   │   └── main.tsx                 # Sovelluksen käynnistyspiste
+│   ├── index.html
+│   ├── vite.config.ts               # Vite-konfiguraatio (portti 3000)
+│   ├── tsconfig.json
+│   ├── package.json
+│   └── VITE_ALUSTUS.md              # Vite-projektin alustusohje
+├── errors/
+│   └── virhekasittelija.ts          # Virhekäsittelijä-middleware
+├── generated/
+│   └── prisma/                      # Prisma 7:n generoima client
+│       └── client.js
+├── lib/
+│   └── prisma.ts                    # Prisma Client -instanssi adapterilla
+├── prisma/
+│   ├── schema.prisma                # Tietomalli
+│   ├── data.db                      # SQLite-tietokantatiedosto
+│   └── migrations/                  # Migraatiot
+├── routes/
+│   └── apiOstokset.ts               # API-reitit
+├── .env                             # Ympäristömuuttujat
+├── index.ts                         # Palvelimen pääohjelma ja JWT-middleware
+├── luoJWT.js                        # JWT-tokenin luontiskripti
+├── prisma.config.ts                 # Prisma 7 -konfiguraatio
+├── tsconfig.json                    # TypeScript-asetukset
+└── package.json                     # Riippuvuudet ja skriptit
+```
+
+---
+
+## 3. JWT-autorisointi: muistilista
+
+### JWT-tokenin luonti ja tarkistus
+
+| Toiminto | Koodi |
+|---|---|
+| Tokenin luonti | `jwt.sign(payload, salaisuus)` |
+| Tokenin tarkistus | `jwt.verify(token, salaisuus)` |
+| Token headerissa | `Authorization: Bearer <token>` |
+| Tokenin irrottaminen | `req.headers.authorization!.split(" ")[1]` |
+
+### Prisma 7 vs. Prisma 6
+
+| Ominaisuus | Prisma 6 | Prisma 7 |
+|---|---|---|
+| Generator | `prisma-client-js` | `prisma-client` |
+| Client-sijainti | `node_modules` | Oma `output`-kansio (esim. `generated/prisma`) |
+| Tietokanta-URL | `schema.prisma` `url`-kenttä | `prisma.config.ts` |
+| Adapteri | Ei tarvita | Pakollinen (esim. `@prisma/adapter-better-sqlite3`) |
+| PrismaClient-luonti | `new PrismaClient()` | `new PrismaClient({ adapter })` |
+| Moduulityyppi | CJS tai ESM | ESM (`"type": "module"`) |
+| Client import | `from "@prisma/client"` | `from "./generated/prisma/client.js"` |
+
+### HTTP-statuskoodit autorisointiin liittyen
+
+| Koodi | Merkitys |
+|---|---|
+| `200` | OK |
+| `400` | Virheellinen pyyntö (esim. puuttuva data) |
+| `401` | Unauthorized (puuttuva tai virheellinen token) |
+| `404` | Reittiä ei löydy |
+| `500` | Palvelinvirhe |
+
+---
+
+## Sovelluksen käynnistys
+
+**1. Asenna palvelimen riippuvuudet:**
+
+```bash
+cd demo07
+npm install
+```
+
+**2. Alusta tietokanta:**
+
+```bash
+npx prisma migrate dev --name init
+```
+
+**3. Luo JWT-token:**
+
+```bash
+node luoJWT.js
+```
+
+Kopioi tulostuneen tokenin ja liitä se asiakassovelluksen `App.tsx`-tiedoston `TOKEN`-vakioon.
+
+**4. Käynnistä palvelin (ensimmäinen terminaali):**
+
+```bash
+npm start
+```
+
+Palvelin käynnistyy osoitteeseen `http://localhost:3007`.
+
+**5. Asenna asiakassovelluksen riippuvuudet (toinen terminaali):**
+
+```bash
+cd client
+npm install
+```
+
+**6. Käynnistä asiakassovellus (toinen terminaali):**
 
 ```bash
 npm run dev
 ```
 
-Palvelin käynnistyy osoitteeseen `http://localhost:3007`.
+Asiakassovellus käynnistyy osoitteeseen `http://localhost:3000`.
 
----
+**7. Testaa sovellusta:** avaa `http://localhost:3000` selaimessa. Ostoslistan pitäisi latautua normaalisti, koska asiakassovellus lähettää validin JWT-tokenin jokaisessa pyynnössä.
 
-## 4. Testaaminen Postmanilla
-
-### Pyyntö ilman tokenia
-
-Tehdään GET-pyyntö `http://localhost:3007/api/ostokset` ilman Authorization-headeria:
-
-- Vastaus: `401 Unauthorized`
-- Body: `{ "viesti": "Virheellinen token" }`
-
-Palvelin hylkää pyynnön, koska Authorization-headeria ei ole.
-
-### Tokenin lisääminen Postmaniin
-
-1. Valitaan "Authorization"-välilehti Postmanissa
-2. Valitaan tyypiksi "Bearer Token"
-3. Syötetään aiemmin `luoJWT.js`-ohjelmalla generoitu token
-
-Tai vaihtoehtoisesti "Headers"-välilehdellä:
-- Key: `Authorization`
-- Value: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (koko token)
-
-Nyt pyyntö menee läpi ja ostokset palautuvat normaalisti.
-
-### Testaus väärällä tokenilla
-
-Muokataan tokenista pari merkkiä (esim. vaihdetaan loppuosa), jolloin allekirjoitus ei enää täsmää:
-
-- Vastaus: `401 Unauthorized`
-- Body: `{ "viesti": "Virheellinen token" }`
-
----
-
-## 5. Tietoturvahuomioita
-
-### Tämän toteutuksen rajoitteet
-
-Tässä demossa on tarkoituksellisia yksinkertaistuksia, jotka eivät sovellu tuotantokäyttöön:
-
-1. **Salainen avain on kovakoodattu** — oikeasti se pitäisi lukea ympäristömuuttujasta `process.env.JWT_SECRET`
-2. **Tokenilla ei ole vanhentumisaikaa** — oikeassa sovelluksessa token asetetaan vanhenemaan (esim. `{ expiresIn: '1h' }`)
-3. **Kaikki käyttävät samaa tokenia** — oikeassa sovelluksessa jokainen käyttäjä saa oman tokenin kirjautuessaan sisään
-
-### Seuraavaan demoon
-
-Seuraavassa demossa toteutetaan turvallisempi ratkaisu:
-
-1. Käyttäjä kirjautuu sisään lähettämällä käyttäjätunnuksen ja salasanan
-2. Palvelin luo kirjautumisen yhteydessä käyttäjäkohtaisen tokenin
-3. Token palautetaan asiakassovellukselle, joka tallentaa sen ja lähettää sen mukana jatkossa
-
-Tässä demossa opittiin JWT:n perusperiaatteet: miten token luodaan, miten se varmennetaan ja miten middleware-rakenne toimii. Nämä perustat pysyvät samoina myös monimutkaisemmissa toteutuksissa.
-
----
-
-## 6. Asiakassovellus
-
-React-asiakassovelluksen rakentamisohjeet löytyvät erillisestä dokumentista:
-
-### [Asiakassovelluksen ohjeistus →](./client/README.md)
+Voit testata tokenin toimintaa muuttamalla `TOKEN`-vakion arvoa tai poistamalla `Authorization`-headerin kokonaan. Palvelin palauttaa tällöin `401 Unauthorized` -vastauksen.
