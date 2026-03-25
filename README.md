@@ -23,3 +23,11 @@ Neljäs demo jatkaa demo 3:n REST-rajapintaa lisäämällä keskitetyn virhekäs
 ## Demo 5 — Prisma ORM ja SQLite-tietokanta
 
 Viidennessä demossa muistitaulukko korvataan pysyvällä SQLite-tietokannalla Prisma ORM:n avulla. Demo esittelee ORM:n käsitteen, Prisman keskeisimmät tietokantametodit (`findMany`, `findUnique`, `create`, `update`, `delete`) sekä asynkronisen ohjelmoinnin (`async/await`), jota tietokantakutsut edellyttävät. Express 5:n automaattinen virheenpropagaatio `async`-reiteistä poistaa tarpeen erillisille `try/catch`-lohkoille.
+
+## Demo 6 — React-asiakassovellus ja REST API
+
+Kuudennessa demossa palvelinsovellukseen liitetään React-asiakassovellus. Palvelimen puolella otetaan käyttöön CORS-middleware (`cors`-paketti), joka sallii selainsovelluksen pyynnöt eri originista. Asiakassovellus on rakennettu Reactilla ja Vitellä, ja se käyttää MUI-komponenttikirjastoa käyttöliittymän rakentamiseen. Demo esittelee asiakas-palvelin -arkkitehtuurin perustan ja asynkronisen tiedonhaun `fetch`-rajapinnalla.
+
+## Demo 7 — JWT-autorisointi
+
+Seitsemännessä demossa palvelinsovellukseen lisätään JWT-pohjainen (JSON Web Token) autorisointi. CORS suojaa vain selainpyyntöjä, mutta JWT toimii kaikilla asiakkailla — myös Postmanilla ja komentorivityökaluilla. Demo esittelee JWT:n rakenteen (header, payload, signature), tokenin luomisen `jsonwebtoken`-kirjastolla sekä middleware-funktion, joka tarkistaa jokaisen pyynnön yhteydessä, että mukana on oikea token.
