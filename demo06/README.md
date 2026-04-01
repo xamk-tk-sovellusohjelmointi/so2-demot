@@ -16,7 +16,7 @@ Tämän demon jälkeen opiskelija osaa:
 
 Aiemmat demot sopivat palvelinsovelluksen testaamiseen suoraan Postmanilla tai selaimella. Oikea verkkosovellus koostuu tyypillisesti **palvelinsovelluksesta** (backend) ja **asiakassovelluksesta** (frontend). Palvelin tarjoaa verkkosovelluksen taustajärjestelmistä saatavaa dataa rajapinnan (REST API) kautta, ja asiakassovellus esittää datan käyttäjälle selaimessa graafisessa käyttöliittymässä. Sovellusohjelmointi 1 -opintojaksolla opiskeltiin React-asiakassovellusten rakentamista erilaisin käyttöliittymäelementein ja tässä vaiheessa Sovellusohjelmointi 2 -opintojakson toteutusta on palautettava mieleen React-ohjelmoinnin perusteita.
 
-Tässä demossa asiakassovellus on ns. **SPA** (eli "Single Page Application"), joka suoritetaan käyttäjän selaimessa. Asiakassovellus hakee tietoja palvelimelta HTTP-pyynnöillä ja päivittää näkymäänsä saamiensa tietojen pohjalta. React-sovelluksissa varsinaista selaimelle tulostettavaa sivua ei vaihdeta näkymien välillä, vaan selaimeen tulostetaan staattinen HTML-sivu, jonka sisällä olevaa "root"-elementtiä käytetään kehyksenä Reactin luomien dynaamisten komponenttinäkymien näyttämiseen. React-sovellusten näkymien tilaa ohjataan JavaScriptilla tai opintojaksojen tapauksessa siihen pohjautuvalla TypeScriptilla.
+Tässä demossa toteutettu asiakassovellus on Reactiin pohjautuva **SPA** (eli "Single Page Application"), joka suoritetaan käyttäjän selaimessa. Asiakassovellus hakee tietoja palvelimelta "kovakoodatuilla" HTTP-pyynnöillä ja päivittää näkymäänsä saamiensa tietojen pohjalta. React-sovelluksissa varsinaista selaimelle tulostettavaa sivua ei vaihdeta näkymien välillä, vaan selaimeen tulostetaan staattinen HTML-etusivu, jonka sisällä olevaa "root"-elementtiä käytetään kehyksenä Reactin luomien dynaamisten komponenttinäkymien näyttämiseen. React-sovellusten näkymien tilaa ohjataan JavaScriptilla tai opintojaksojen tapauksessa siihen pohjautuvalla TypeScriptilla.
 
 ### Miten asiakassovellus tekee pyyntöjä palvelimelle?
 
@@ -35,9 +35,14 @@ const vastaus = await fetch("http://localhost:3006/api/ostokset", {   // POST-py
 });
 ```
 
+`fetch`-metodi ottaa vastaan kaksi parametria. Ensimmäinen parametri on palvelimen REST API -reitin URL-osoite ja toinen parametri valinnainen asetukset-objekti. Yllä olevassa koodissa on esimerkit yksinkertaisten GET- ja POST-pyyntöjen tekemisestä `fetch`:llä. GET-pyynnössä asetuksia ei tarvitse määrittää. POST-, PUT- ja DELETE-pyynnöissä asetuksiin asetetaan:
 
+- `method`, eli pyynnön metodi;
+- tarvittaessa `headers`, eli pyynnön otsikkotiedot; ja
+- `body`, eli pyynnön varsinainen tietosisältö.
 
-`fetch` ottaa kaksi parametria: URL-osoitteen ja valinnaisen asetukset-objektin. GET-pyynnössä asetuksia ei tarvita. POST-, PUT- ja DELETE-pyynnöissä asetetaan `method`, tarvittaessa `headers` ja `body`.
+>[!tip]
+Kiinnitä huomiota siihen, että `fetch`-komennon asetukset on JSON-objekti, jossa yksittäiset kentät voivat sisältää lisää JSON-objekteja. Tämä on ihan normaalia JSON-notaatiossa, ja kannattaakin käyttää hieman aikaa lukeakseen ja harjoitellakseen esimerkkejä JSON-muotoisen objektien kirjoittamisesta, jotta osaa lukea niitä. Yllä olevan esimerkin asetukset-JSON-objektissa on esim. `headers`-kenttä, jonka arvo on toinen JSON-objekti. Samoin `body`-osassa palautettavat tiedot ovat yleensä oma JSON-objektinsa kuten vaikkapa `{ tuote: "Maitoa", poimittu: false }`.
 
 ### CORS
 
