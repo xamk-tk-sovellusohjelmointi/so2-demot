@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    // Node/Express-perusasetukset
+    "module": "preserve",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "sourceMap": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+
+    // Prisma 7 edellyttää nämä lisäasetukset
+    "declaration": true,
+    "declarationMap": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noUncheckedSideEffectImports": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true
+  }
+}

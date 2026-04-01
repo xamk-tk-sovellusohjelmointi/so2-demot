@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Ostos {
+  id       Int     @id @default(autoincrement())
+  tuote    String
+  poimittu Boolean @default(false)
+}
+
+model Kayttaja {
+  id             Int    @id @default(autoincrement())
+  kayttajatunnus String @unique
+  salasana       String
+}

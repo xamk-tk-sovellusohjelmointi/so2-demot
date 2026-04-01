@@ -31,3 +31,7 @@ Kuudennessa demossa palvelinsovellukseen liitetään React-asiakassovellus. Palv
 ## Demo 7 — JWT-autorisointi
 
 Seitsemännessä demossa palvelinsovellukseen lisätään JWT-pohjainen (JSON Web Token) autorisointi. CORS suojaa vain selainpyyntöjä, mutta JWT toimii kaikilla asiakkailla — myös Postmanilla ja komentorivityökaluilla. Demo esittelee JWT:n rakenteen (header, payload, signature), tokenin luomisen `jsonwebtoken`-kirjastolla sekä middleware-funktion, joka tarkistaa jokaisen pyynnön yhteydessä, että mukana on oikea token.
+
+## Demo 8 — Käyttäjähallinta ja autentikointi
+
+Kahdeksannessa demossa toteutetaan käyttäjän autentikointi: palvelin tallentaa käyttäjätunnukset ja SHA-256-tiivisteellä suojatut salasanat tietokantaan. Kirjautumisreitille (`/api/auth/login`) ei vaadita tokenia, mutta onnistuneen kirjautumisen jälkeen palvelin luo käyttäjäkohtaisen JWT-tokenin. Asiakassovelluksessa on erillinen kirjautumiskomponentti (React Router), ja token tallennetaan `localStorage`-tallennustilaan. Token lähetetään mukana ostoslistan API-kutsuissa, ja 401-vastauksella käyttäjä ohjataan automaattisesti kirjautumissivulle.
