@@ -6,35 +6,36 @@ Tämän demon jälkeen opiskelija osaa:
 - luoda React-asiakassovelluksen Vite-kehitystyökalulla palvelinsovelluksen yhteyteen
 - selittää, mikä CORS on ja miksi se tarvitaan
 - käyttää fetch-rajapintaa HTTP-pyyntöjen tekemiseen palvelimelle
-- käyttää MUI-komponenttikirjastoa käyttöliittymän rakentamiseen
-- päivittää palvelinsovelluksen käyttämään Prisma 7:ää
+- käyttää MUI-komponenttikirjastoa palvelinsovelluksen REST API:a hyödyntävän käyttöliittymän rakentamiseen
 
 ---
 
-## 1. Asiakassovellus ja palvelimen välinen kommunikaatio
+## 1. Asiakassovelluksen ja palvelimen välinen kommunikaatio
 
 ### Mitä asiakassovelluksella tarkoitetaan?
 
-Aiemmissa demoissa palvelinsovellusta testattiin Postmanilla ja selaimella suoraan. Oikea verkkosovellus koostuu tyypillisesti kahdesta osasta: **palvelinsovelluksesta** (backend) ja **asiakassovelluksesta** (frontend). Palvelin tarjoaa datan rajapinnan (REST API) kautta, ja asiakassovellus esittää datan käyttäjälle selaimessa.
+Aiemmat demot sopivat palvelinsovelluksen testaamiseen suoraan Postmanilla tai selaimella. Oikea verkkosovellus koostuu tyypillisesti **palvelinsovelluksesta** (backend) ja **asiakassovelluksesta** (frontend). Palvelin tarjoaa verkkosovelluksen taustajärjestelmistä saatavaa dataa rajapinnan (REST API) kautta, ja asiakassovellus esittää datan käyttäjälle selaimessa graafisessa käyttöliittymässä. Sovellusohjelmointi 1 -opintojaksolla opiskeltiin React-asiakassovellusten rakentamista erilaisin käyttöliittymäelementein ja tässä vaiheessa Sovellusohjelmointi 2 -opintojakson toteutusta on palautettava mieleen React-ohjelmoinnin perusteita.
 
-Asiakassovellus on **SPA** (Single Page Application), joka ajetaan käyttäjän selaimessa. Sovellus hakee tietoja palvelimelta HTTP-pyynnöillä ja päivittää näkymää ilman sivulatausta.
+Tässä demossa asiakassovellus on ns. **SPA** (eli "Single Page Application"), joka suoritetaan käyttäjän selaimessa. Asiakassovellus hakee tietoja palvelimelta HTTP-pyynnöillä ja päivittää näkymäänsä saamiensa tietojen pohjalta. React-sovelluksissa varsinaista selaimelle tulostettavaa sivua ei vaihdeta näkymien välillä, vaan selaimeen tulostetaan staattinen HTML-sivu, jonka sisällä olevaa "root"-elementtiä käytetään kehyksenä Reactin luomien dynaamisten komponenttinäkymien näyttämiseen. React-sovellusten näkymien tilaa ohjataan JavaScriptilla tai opintojaksojen tapauksessa siihen pohjautuvalla TypeScriptilla.
 
-### fetch-rajapinta
+### Miten asiakassovellus tekee pyyntöjä palvelimelle?
 
-Selaimen `fetch`-funktio on JavaScriptin sisäänrakennettu tapa tehdä HTTP-pyyntöjä. `fetch` palauttaa `Promise`-objektin, joten sitä käytetään `async/await`-rakenteella.
+Selaimen `fetch`-funktio on JavaScriptin sisäänrakennettu tapa tehdä HTTP-pyyntöjä palvelimelle. `fetch` palauttaa lupauksen tiedoista `Promise`-objektina, jota pitää käsitellä asynkroonisesti `async`/`await` -komennoilla.
 
 ```typescript
-// GET-pyyntö
-const vastaus = await fetch("http://localhost:3006/api/ostokset");
-const data = await vastaus.json();
+// Asiakassovellukseen ohjelmoitava GET-pyyntö
+const vastaus = await fetch("http://localhost:3006/api/ostokset");    // Muuttuja 'vastaus' on palvelimen REST API reitinkäsittelijän palauttama data asiakkaalle.
+const data = await vastaus.json();                                    // Vastauksen sisältämä tieto pitää muuntaa JSON-muotoon ohjelmallista käsittelyä varten.
 
-// POST-pyyntö
-const vastaus = await fetch("http://localhost:3006/api/ostokset", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ tuote: "Maitoa", poimittu: false })
+// Asiakassovellukseen ohjelmoitava POST-pyyntö
+const vastaus = await fetch("http://localhost:3006/api/ostokset", {   // POST-pyyntöä varten fetch-kutsun toiseksi parametriksi on annettava pyynnössä lähetettävät tiedot eli pyynnön asetukset.
+  method: "POST",                                                     // 'method' määrittää pyynnössä käytetyn HTTP-metodin. Tässä tehdään POST-pyyntö.
+  headers: { "Content-Type": "application/json" },                    // Otsikkotietoihin liitetään tietoa pyynnössä tulevan tiedon tyypistä. Välitettäessä JSON-dataa sovellusten välillä 'Content-Type' on 'application/json'. Tämä on yleisin tiedon sisältömuoto, jolla asiakas ja palvelin keskustelevat.
+  body: JSON.stringify({ tuote: "Maitoa", poimittu: false })          // Pyynnön a
 });
 ```
+
+
 
 `fetch` ottaa kaksi parametria: URL-osoitteen ja valinnaisen asetukset-objektin. GET-pyynnössä asetuksia ei tarvita. POST-, PUT- ja DELETE-pyynnöissä asetetaan `method`, tarvittaessa `headers` ja `body`.
 
