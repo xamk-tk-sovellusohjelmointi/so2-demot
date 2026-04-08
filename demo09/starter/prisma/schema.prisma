@@ -1,0 +1,19 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Ajo {
+  id     Int      @id @default(autoincrement())
+  reitti String
+  km     Int
+  ajaja  String
+  pvm    DateTime @default(now())
+}
