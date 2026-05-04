@@ -219,7 +219,7 @@ Loogisesti yllä olevan koodi seuraa alla olevaa järjestystä:
 
 Selaimessa näkyy nyt latausikoni, koska `haettu` on `false` eikä dataa haeta vielä mistään.
 
-### [Vaihe 6: Ensimmäinen API-kutsu ja CORS-virhe](#vaihe-6-ensimmainen-api-kutsu-ja-cors-virhe)
+### [Vaihe 6: Ensimmäinen API-kutsu ja CORS-virhe](#vaihe-6-ensimmäinen-api-kutsu-ja-cors-virhe)
 
 API-kutsu tarkoittaa siis samaa asiaa kuin HTTP-pyynnön tekeminen palvelimelle, jota on aiemmissa demoissa tehty suoraan manuaalisesti Postmanilla. Tehdään ensimmäinen API-kutsu palvelimelle kaikkien ostosten hakemiseksi. Lisätään `useEffect`-importti ja haetaan data:
 
