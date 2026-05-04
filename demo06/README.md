@@ -1,26 +1,32 @@
-# Demo 6: Asiakassovelluksen toteutus
+# Demo 6: Asiakassovelluksen yhdistäminen palvelinsovellukseen
+
+Demo 6 keskittyy REST API -tyyppisten palvelinsovellusten käyttämiseen loppukäyttäjän asiakassovelluksella. Asiakassovellus liittyy fullstack-verkkosovellusten ohjelmoinnissa niin sanottuun frontend-päähän, jota voidaan myös ajatella verkkosovellusten julkisivuna, jonka kanssa oikeat ihmiskäyttäjät toimivat. Palvelimen päässä REST API -sovelluksen perustoiminto pysyy samana: palvelin kuuntelee sen tarjoamiin reitteihin tulevia pyyntöjä ja vastaa niihin ohjelmointinsa mukaisesti, mutta nyt puhtaan komentomuotoisen käytön sijaan palvelimelle luodaan käyttöliittymä Sovellusohjelmointi 1 -opintojaksolta tutuilla React-tekniikoilla. Tässä demossa asiakas- ja palvelinsovelluksina toteutetaan ostoslista-sovellus, jolla käyttäjä voi lisätä ja poistaa ostoksia, sekä merkitä niitä poimituksi.
 
 ## Oppimistavoitteet
 
-Tämän demon jälkeen opiskelija osaa:
-- luoda React-asiakassovelluksen Vite-kehitystyökalulla palvelinsovelluksen yhteyteen
-- selittää, mikä CORS on ja miksi se tarvitaan
-- käyttää fetch-rajapintaa HTTP-pyyntöjen tekemiseen palvelimelle
-- käyttää MUI-komponenttikirjastoa palvelinsovelluksen REST API:a hyödyntävän käyttöliittymän rakentamiseen
+Tämän demon jälkeen opiskelija:
+- osaa yhdistää React-asiakassovelluksen palvelinsovellukseen,
+- on tietoinen CORS-mekanismista, sen käyttötarkoituksesta ja käyttöönotosta,
+- osaa rakentaa palvelinpyyntöjen lähettämisen toiminnon asiakassovellukseen fetch-rajapinnalla, ja
+- kertaa MUI-komponenttikirjaston käyttöä asiakassovelluksen käyttöliittymän toteuttamiseen.
+
+Aloitetaan opiskelu tutustumalla ensin käsitteellisellä tasolla asiakassovellusten liittämiseen palvelinsovellukseen ja HTTP-pyyntöjen tekemiseen ohjelmallisesti.
 
 ---
 
 ## 1. Asiakassovelluksen ja palvelimen välinen kommunikaatio
 
-### Mitä asiakassovelluksella tarkoitetaan?
+### Kertausta asiakassovelluksista
 
-Aiemmat demot sopivat palvelinsovelluksen testaamiseen suoraan Postmanilla tai selaimella. Oikea verkkosovellus koostuu tyypillisesti **palvelinsovelluksesta** (backend) ja **asiakassovelluksesta** (frontend). Palvelin tarjoaa verkkosovelluksen taustajärjestelmistä saatavaa dataa rajapinnan (REST API) kautta, ja asiakassovellus esittää datan käyttäjälle selaimessa graafisessa käyttöliittymässä. Sovellusohjelmointi 1 -opintojaksolla opiskeltiin React-asiakassovellusten rakentamista erilaisin käyttöliittymäelementein ja tässä vaiheessa Sovellusohjelmointi 2 -opintojakson toteutusta on palautettava mieleen React-ohjelmoinnin perusteita.
+Tämän demon pääaiheena opiskellaan asiakassovelluksen liittämistä REST API -palvelinsovellukseen/verkkopalveluun \(web service\). Verkkopalveluissa ajatuksena oli, että palvelinsovellus tarjoaa standardoidun ja REST-käytänteiden mukaisen ohjelmointirajapinnan \(API\), jonka kanssa kommunikointiin voidaan luoda muita sovelluksia, jotka lähettävät automaattisesti muodostettuja HTTP-pyyntöjä palvelimelle. Näitä muita sovelluksia ovat yleensä loppukäyttäjille tarkoitetut **asiakassovellukset** \(client application\). Aiemmissa demoissa palvelinsovellusta testattiin Postman-sovelluksella, joka soveltuu hyvin REST API -tyyppisten web service -rajapintojen testaamiseen eri HTTP-pyynnöille, mutta tässä kaikki pyynnöt piti määritellä testeissä erikseen. Loppukäyttäjän näkökulmasta tämä ei ole toimiva tapa käyttää verkkosovellusta, vaan ihmiskäyttäjille luodaankin omat asiakassovellukset, joilla on graafinen käyttöliittymä. Käyttöliittymässä voidaan esimerkiksi kerätä käyttäjien antamaa tietoja, liittää ne ohjelmallisesti osaksi palvelimelle lähtevää HTTP-pyyntöä ja asiakassovellus hoitaa loput automaattisesti. Ihmiskäyttäjän ei tarvitse tehdä muuta kuin käyttää käyttöliittymää.
 
-Tässä demossa toteutettu asiakassovellus on Reactiin pohjautuva **SPA** (eli "Single Page Application"), joka suoritetaan käyttäjän selaimessa. Asiakassovellus hakee tietoja palvelimelta "kovakoodatuilla" HTTP-pyynnöillä ja päivittää näkymäänsä saamiensa tietojen pohjalta. React-sovelluksissa varsinaista selaimelle tulostettavaa sivua ei vaihdeta näkymien välillä, vaan selaimeen tulostetaan staattinen HTML-etusivu, jonka sisällä olevaa "root"-elementtiä käytetään kehyksenä Reactin luomien dynaamisten komponenttinäkymien näyttämiseen. React-sovellusten näkymien tilaa ohjataan JavaScriptilla tai opintojaksojen tapauksessa siihen pohjautuvalla TypeScriptilla.
+Tässä demossa toteutettu asiakassovellus on React-kirjastoon pohjautuva yhden sivun sovellus eli niin sanottu **SPA** (eli "Single Page Application"), joka suoritetaan käyttäjän selaimessa. Asiakassovellus hakee tietoja palvelimelta "kovakoodatuilla" HTTP-pyynnöillä ja päivittää näkymäänsä saamiensa tietojen pohjalta. React-sovelluksissa varsinaista selaimelle tulostettavaa sivua ei vaihdeta näkymien välillä, vaan selaimeen tulostetaan staattinen HTML-etusivu, jonka sisällä olevaa "root"-elementtiä käytetään kehyksenä Reactin luomien dynaamisten komponenttinäkymien näyttämiseen. React-sovellusten näkymien tilaa ohjataan JavaScriptilla tai opintojaksojen tapauksessa siihen pohjautuvalla TypeScriptilla.
 
-### Miten asiakassovellus tekee pyyntöjä palvelimelle?
+### Kuinka asiakassovellus lähettää pyyntöjä palvelimelle?
 
-Selaimen `fetch`-funktio on JavaScriptin sisäänrakennettu tapa tehdä HTTP-pyyntöjä palvelimelle. `fetch` palauttaa lupauksen tiedoista `Promise`-objektina, jota pitää käsitellä asynkroonisesti `async`/`await` -komennoilla.
+Selaimen `fetch`-funktio on JavaScriptiin sisäänrakennettu tapa tehdä HTTP-pyyntöjä palvelimelle. `fetch`-funktiota käytetään muodostamaan HTTP-pyynnön rakenne, lähettämään se palvelimen johonkin reittiin ja takaisin palautetaan lupaus palvelimen tiedoista `Promise`-objektina. Opintojaksolla ei keskitytä tarkemmin lupausten eli `Promise`-objektien tekniseen toimintaan. Riittää, että ymmärtää kyseessä olevan viiveellinen toimenpide (johtuen erinäisistä teknisistä syistä kuten internet-yhteydestä asiakkaan ja palvelimen välillä sekä tietokoneiden omasta prosessoinnin kestosta, jne.). Tämän takia palvelimelle tehtäviä pyyntöjä pitää käsitellä asynkroonisesti `async`/`await` -komennoilla. **Eli yksinkertaisetusti: aina kun ohjelmoinnissa funktio palauttaa lupauksen (Promise) tiedosta, joudutaan tietoa odottamaan (await) käyttäen asynkroonisia toimintoja (async).** Tähän perustuu myös esimerkiksi Prisma-tietokantakyselyjen asynkroonisuus, sillä tietokanta voi olla laaja ja kyselyn suorittamiseen voi kulua suurissa tietokannoissa useita sekunteja ja jopa minuutteja.
+
+Alla on yleistetty esimerkki React-asiakassovellukseen ohjelmoitavan fetch-pyynnön rakenteesta (GET ja POST -metodit). **Huomioi**, että tämä on vain yksi esimerkki ja pyynnön rakenne pitää suunnitella aina käyttötarkoituksen ja halutun toiminnallisuuden mukaan. Koska jokaista käyttötapausta ja esimerkkiä on mahdotonta ja epäkäytännöllistä käydä läpi opintojakson demoissa, kannattaa aiheeseen tutustua itsenäisesti lukemalla [virallisia dokumentaatioita](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch") ja [asiantuntija-artikkeleita](https://www.slingacademy.com/article/using-fetch-api-with-typescript-tutorial-examples/ "https://www.slingacademy.com/article/using-fetch-api-with-typescript-tutorial-examples/") aiheesta.
 
 ```typescript
 // Asiakassovellukseen ohjelmoitava GET-pyyntö
@@ -42,9 +48,9 @@ const vastaus = await fetch("http://localhost:3006/api/ostokset", {   // POST-py
 - `body`, eli pyynnön varsinainen tietosisältö.
 
 >[!tip]
-Kiinnitä huomiota siihen, että `fetch`-komennon asetukset on JSON-objekti, jossa yksittäiset kentät voivat sisältää lisää JSON-objekteja. Tämä on ihan normaalia JSON-notaatiossa, ja kannattaakin käyttää hieman aikaa lukeakseen ja harjoitellakseen esimerkkejä JSON-muotoisen objektien kirjoittamisesta, jotta osaa lukea niitä. Yllä olevan esimerkin asetukset-JSON-objektissa on esim. `headers`-kenttä, jonka arvo on toinen JSON-objekti. Samoin `body`-osassa palautettavat tiedot ovat yleensä oma JSON-objektinsa kuten vaikkapa `{ tuote: "Maitoa", poimittu: false }`.
+Kiinnitä huomiota siihen, että `fetch`-komennon asetukset ovat JSON-objektimuodossa, jossa yksittäiset kentät voivat sisältää lisää JSON-objekteja. Tämä on ihan normaalia JSON-notaatiossa, ja kannattaakin käyttää hieman aikaa lukeakseen ja harjoitellakseen esimerkkejä JSON-muotoisen objektien kirjoittamisesta, jotta osaa lukea niitä. Yllä olevan esimerkin asetukset-JSON-objektissa on esim. `headers`-kenttä, jonka arvo on toinen JSON-objekti. Samoin `body`-osassa palautettavat tiedot ovat yleensä oma JSON-objektinsa kuten vaikkapa `{ tuote: "Maitoa", poimittu: false }`.
 
-### CORS
+### CORS-mekanismi
 
 **CORS** (Cross-Origin Resource Sharing) on selaimen suojamekanismi, joka estää verkkosivua tekemästä pyyntöjä eri alkuperään (origin) kuin mistä sivu ladattiin. Alkuperä muodostuu protokollasta, domainista ja portista.
 
@@ -67,15 +73,17 @@ Kehityksen aikana ajetaan kahta palvelinta samanaikaisesti:
 1. Express-palvelin (portti 3006) tarjoaa REST API:n
 2. Vite-kehityspalvelin (portti 3000) tarjoilee React-asiakassovelluksen
 
+Voit ajaa kahta kehityspalvelinta samanaikaisesti VS Codessa luomalla kummallekin oman Terminal-instanssin. VS Codessa voi olla auki samanaikaisesti useita terminaaleja, jotka voivat pyörittää eri prosesseja samanaikaisesti. Kun tehdään paikallista verkkosovelluskehitystä, kehityspalvelinten tulee olla omissa porteissaan, koska kaksi eri prosessia ei voi kuunnella samaa porttia.
+
 ### MUI-komponenttikirjasto
 
-**MUI** (Material UI) on React-komponenttikirjasto, joka tarjoaa valmiita käyttöliittymäkomponentteja Googlen Material Design -tyylillä. MUI:n avulla voidaan rakentaa siisti käyttöliittymä nopeasti ilman manuaalista CSS-tyylittelyä.
+**MUI** (Material UI) on React-komponenttikirjasto, joka tarjoaa valmiita käyttöliittymäkomponentteja Googlen Material Design -tyylillä. MUI:n avulla voidaan rakentaa siisti käyttöliittymä nopeasti ilman manuaalista CSS-tyylittelyä. MUI-kirjaston käyttöä opiskeltiin Sovellusohjelmointi 1 -opintojaksolla, eikä siihen paneuduta syvällisemmin tässä demossa. Voit lukea MUI-kirjaston käytöstä sen [virallisesta dokumentaatiosta](https://mui.com/material-ui/getting-started/ "https://mui.com/material-ui/getting-started/").
 
-### Demosovellus
+### Demosovellus – Ostoslista
 
-Tässä demossa rakennetaan asiakassovellus aiemmissa demoissa kehitetylle ostoslista-palvelimelle. Palvelimen REST API:a hyödynnetään asiakassovelluksesta `fetch`-pyynnöillä. Asiakassovellus toteutetaan React-sovelluksena Vite 8 -kehitystyökalulla ja MUI-komponenttikirjastolla.
+Tässä demossa rakennetaan asiakassovellus uudelle ostoslista-palvelimelle. Palvelimen REST API:a hyödynnetään asiakassovelluksesta `fetch`-pyynnöillä. Asiakassovellus toteutetaan React-sovelluksena Vite-kehitystyökalulla ja MUI-komponenttikirjastolla.
 
-Palvelimeen tehdään seuraavat muutokset: Prisma päivitetään versioon 7 ja CORS otetaan käyttöön. API-reitit ja virheenkäsittely pysyvät pääosin ennallaan.
+Nyt palvelinsovellus toteutetaan täysin uutena sovelluksena, mutta aiempien demojen käsitteet esim. Prisman käytöstä ja virhekäsittelijästä pysyvät samoina.
 
 Asiakassovelluksessa käytettävät REST API -reitit:
 
@@ -87,455 +95,11 @@ Asiakassovelluksessa käytettävät REST API -reitit:
 
 ---
 
-## 2. Demosovelluksen rakentuminen vaihe vaiheelta
+## 2. Ostoslista-sovelluksen rakentuminen vaihe vaiheelta
 
-### Vaihe 1: Palvelimen alustaminen ja Prisma 7
+Ostoslista-sovelluksen palvelimen ja asiakkaan ohjeistukset löytyvät omista README-tiedostoista vastaavien alikansioiden alta (server ja client).
 
-Aiemmissa demoissa Prisma oli käytössä vanhemmalla versiolla. Prisma 7 tuo mukanaan merkittäviä muutoksia: Rust-pohjainen moottori on vaihdettu TypeScript-toteutukseen, generoitu client tuotetaan projektin lähdekoodiin, ja tietokantayhteys vaatii erillisen ajuriadapterin.
-
-> **Huomio:** Prisma 7:n muutokset eivät vaikuta itse tietokantakyselyihin. Tutut metodit kuten `findMany()`, `create()`, `update()` ja `delete()` toimivat ennallaan. Muutokset koskevat asetuksia ja alustusta.
-
-Aloitetaan tyhjästä projektikansiosta `demo06`. Alustetaan Node-projekti ja asennetaan riippuvuudet.
-
-```bash
-mkdir demo06
-cd demo06
-npm init -y
-```
-
-**Asennetaan kehitysriippuvuudet:**
-
-```bash
-npm install typescript tsx @types/node @types/express @types/cors @types/better-sqlite3 nodemon prisma --save-dev
-```
-
-| Paketti | Tarkoitus |
-|---|---|
-| `typescript` | TypeScript-kääntäjä |
-| `tsx` | TypeScript-suoritusympäristö (korvaa ts-noden) |
-| `@types/node` | Noden tyypitykset |
-| `@types/express` | Expressin tyypitykset |
-| `@types/cors` | CORS-kirjaston tyypitykset |
-| `@types/better-sqlite3` | SQLite-ajurin tyypitykset |
-| `nodemon` | Automaattinen uudelleenkäynnistys tiedostomuutoksissa |
-| `prisma` | Prisma CLI (migraatiot, generointi) |
-
-**Asennetaan tuotantoriippuvuudet:**
-
-```bash
-npm install express cors @prisma/client @prisma/adapter-better-sqlite3 dotenv
-```
-
-| Paketti | Tarkoitus |
-|---|---|
-| `express` | HTTP-palvelinkehys |
-| `cors` | CORS-otsikkoja lisäävä middleware |
-| `@prisma/client` | Prisma Client -kirjasto |
-| `@prisma/adapter-better-sqlite3` | SQLite-ajuriadapteri Prisma 7:lle |
-| `dotenv` | Ympäristömuuttujien lataaminen `.env`-tiedostosta |
-
-> **Huomio:** Prisma 7:ssä `@prisma/adapter-better-sqlite3` on pakollinen. Aiemmin PrismaClient käytti sisäänrakennettua Rust-moottoria tietokantayhteyteen. Prisma 7:ssä yhteys hoidetaan JavaScript-pohjaisella ajuriadapterilla.
-
-**Luodaan `tsconfig.json`:**
-
-```json
-{
-  "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ES2023",
-    "strict": true,
-    "esModuleInterop": true,
-    "outDir": "./dist",
-    "ignoreDeprecations": "6.0"
-  }
-}
-```
-
-**Muokataan `package.json`** lisäämällä `scripts`-osio:
-
-```json
-{
-  "name": "demo06",
-  "version": "1.0.0",
-  "main": "index.ts",
-  "scripts": {
-    "dev": "npx nodemon --exec tsx index.ts"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.14",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.13.10",
-    "nodemon": "^3.1.9",
-    "prisma": "^7.0.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.8.2"
-  },
-  "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.0.0",
-    "@prisma/client": "^7.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.0.0",
-    "express": "^4.21.2"
-  }
-}
-```
-
-`tsx` korvaa aiempien demojen `ts-node`-paketin. `tsx` on nopeampi ja yhteensopivampi uudempien pakettien kanssa.
-
----
-
-**Alustetaan Prisma:**
-
-```bash
-npx prisma init --datasource-provider sqlite --output ../generated/prisma
-```
-
-Komento luo kolme tiedostoa:
-- `prisma/schema.prisma` (tietokantamallin määritys)
-- `prisma.config.ts` (Prisma CLI:n asetukset)
-- `.env` (ympäristömuuttujat)
-
-**`prisma.config.ts`** on Prisma 7:n uusi asetustiedosto. Se kertoo Prisma CLI:lle, mistä schema löytyy ja mikä tietokannan osoite on:
-
-```typescript
-import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
-
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
-  datasource: {
-    url: env("DATABASE_URL"),
-  },
-});
-```
-
-| Asetus | Selitys |
-|---|---|
-| `schema` | Prisma schema -tiedoston sijainti |
-| `migrations.path` | Migraatiotiedostojen kansio |
-| `datasource.url` | Tietokannan osoite ympäristömuuttujasta |
-
-**Muokataan `.env`-tiedostoa:**
-
-```
-DATABASE_URL="file:./prisma/data.db"
-```
-
-**Muokataan `prisma/schema.prisma`:**
-
-```prisma
-generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
-}
-
-datasource db {
-  provider = "sqlite"
-}
-
-model Ostos {
-  id       Int     @id @default(autoincrement())
-  tuote    String
-  poimittu Boolean @default(false)
-}
-```
-
-Prisma 7:n schema eroaa aiemmista versioista seuraavilla tavoilla:
-
-| Muutos | Vanha (Prisma 5/6) | Uusi (Prisma 7) |
-|---|---|---|
-| Generator | `provider = "prisma-client-js"` | `provider = "prisma-client"` |
-| Output | Ei määritelty (node_modules) | `output = "../generated/prisma"` |
-| URL schemassa | `url = "file:./data.db"` | Poistettu schemasta, siirretty `prisma.config.ts`:ään |
-
-`output`-asetus kertoo, minne generoitu Prisma Client tallennetaan. Prisma 7 generoi clientin projektin lähdekoodiin `node_modules`-kansion sijasta.
-
-**Suoritetaan migraatio ja generointi:**
-
-```bash
-npx prisma migrate dev --name init
-npx prisma generate
-```
-
-Migraatio luo tietokantataulun `Ostos` schema-mallin perusteella. `prisma generate` generoi tyypitetyn PrismaClient-koodin `generated/prisma/`-kansioon.
-
----
-
-**Luodaan `lib/prisma.ts`:**
-
-Prisma 7:ssä PrismaClient tarvitsee ajuriadapterin konstruktorissa. Luodaan erillinen tiedosto, josta PrismaClient tuodaan muualle sovellukseen.
-
-```typescript
-import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient } from "../generated/prisma/client";
-
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || "file:./prisma/data.db",
-});
-
-const prisma = new PrismaClient({ adapter });
-
-export { prisma };
-```
-
-| Rivi | Selitys |
-|---|---|
-| `import "dotenv/config"` | Lataa `.env`-tiedoston ympäristömuuttujat |
-| `PrismaBetterSqlite3` | SQLite-ajuriadapteri, joka hoitaa tietokantayhteyden |
-| `PrismaClient` | Tuodaan generoidusta kansiosta, ei `@prisma/client`-paketista |
-| `new PrismaClient({ adapter })` | PrismaClient alustetaan antamalla sille adapterin ilmentymä |
-
----
-
-**Luodaan `errors/virhekasittelija.ts`:**
-
-Virhekäsittelijä on sama kuin demo 5:ssä.
-
-```typescript
-import express from "express";
-
-export class Virhe extends Error {
-  status: number;
-  viesti: string;
-  constructor(status?: number, viesti?: string) {
-    super();
-    this.status = status || 500;
-    this.viesti = viesti || "Palvelimella tapahtui odottamaton virhe";
-  }
-}
-
-const virhekasittelija = (
-  err: Virhe,
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) => {
-  res.status(err.status).json({ virhe: err.viesti });
-  next();
-};
-
-export default virhekasittelija;
-```
-
----
-
-**Luodaan `routes/apiOstokset.ts`:**
-
-API-reitit pysyvät lähes ennallaan demo 5:stä. PrismaClient tuodaan nyt `lib/prisma.ts`-tiedostosta.
-
-```typescript
-import express from "express";
-import { Virhe } from "../errors/virhekasittelija";
-import { prisma } from "../lib/prisma";
-
-const apiOstoksetRouter: express.Router = express.Router();
-
-apiOstoksetRouter.use(express.json());
-
-// GET / — Hae kaikki ostokset
-apiOstoksetRouter.get(
-  "/",
-  async (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    try {
-      res.json(await prisma.ostos.findMany());
-    } catch (e: any) {
-      next(new Virhe());
-    }
-  }
-);
-
-// GET /:id — Hae yksittäinen ostos
-apiOstoksetRouter.get(
-  "/:id",
-  async (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    try {
-      const ostos = await prisma.ostos.findUnique({
-        where: { id: Number(req.params.id) },
-      });
-
-      if (ostos) {
-        res.json(ostos);
-      } else {
-        next(new Virhe(400, "Virheellinen id"));
-      }
-    } catch (e: any) {
-      next(new Virhe());
-    }
-  }
-);
-
-// POST / — Lisää uusi ostos
-apiOstoksetRouter.post(
-  "/",
-  async (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    if (req.body.tuote?.length > 0) {
-      try {
-        await prisma.ostos.create({
-          data: {
-            tuote: req.body.tuote,
-            poimittu: Boolean(req.body.poimittu),
-          },
-        });
-
-        res.json(await prisma.ostos.findMany());
-      } catch (e: any) {
-        next(new Virhe());
-      }
-    } else {
-      next(new Virhe(400, "Virheellinen pyynnön body"));
-    }
-  }
-);
-
-// PUT /:id — Muokkaa ostosta
-apiOstoksetRouter.put(
-  "/:id",
-  async (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    const ostos = await prisma.ostos.findUnique({
-      where: { id: Number(req.params.id) },
-    });
-
-    if (!ostos) {
-      return next(new Virhe(400, "Virheellinen id"));
-    }
-
-    if (
-      req.body.tuote?.length > 0 &&
-      (req.body.poimittu === true || req.body.poimittu === false)
-    ) {
-      try {
-        await prisma.ostos.update({
-          where: { id: Number(req.params.id) },
-          data: {
-            tuote: req.body.tuote,
-            poimittu: req.body.poimittu,
-          },
-        });
-
-        res.json(await prisma.ostos.findMany());
-      } catch (e: any) {
-        next(new Virhe());
-      }
-    } else {
-      next(new Virhe(400, "Virheellinen pyynnön body"));
-    }
-  }
-);
-
-// DELETE /:id — Poista ostos
-apiOstoksetRouter.delete(
-  "/:id",
-  async (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    const ostos = await prisma.ostos.findUnique({
-      where: { id: Number(req.params.id) },
-    });
-
-    if (!ostos) {
-      return next(new Virhe(400, "Virheellinen id"));
-    }
-
-    try {
-      await prisma.ostos.delete({
-        where: { id: Number(req.params.id) },
-      });
-
-      res.json(await prisma.ostos.findMany());
-    } catch (e: any) {
-      next(new Virhe());
-    }
-  }
-);
-
-export default apiOstoksetRouter;
-```
-
-> **Huomio:** Aiemmista demoista poiketen olemassaolon tarkistus tehdään `findUnique()`-metodilla `count()`-metodin sijasta. `findUnique()` palauttaa `null`, jos tietuetta ei löydy, jolloin tarkistus on luettavampi: `if (!ostos)`.
-
----
-
-**Luodaan `index.ts`:**
-
-Palvelimen juuritiedosto sisältää Expressin alustuksen. CORS-asetusta **ei** lisätä vielä tässä vaiheessa. Se lisätään myöhemmin, kun CORS-virhe havaitaan asiakassovelluksesta.
-
-```typescript
-import express from "express";
-import path from "path";
-import apiOstoksetRouter from "./routes/apiOstokset";
-import virhekasittelija from "./errors/virhekasittelija";
-
-const app: express.Application = express();
-
-const portti: number = Number(process.env.PORT) || 3006;
-
-// Simuloidaan verkkoviivettä 1 sekunnin viiveellä.
-// Tämä havainnollistaa latausindikaattorin toimintaa asiakassovelluksessa.
-app.use(
-  (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    setTimeout(() => next(), 1000);
-  }
-);
-
-app.use(express.static(path.resolve(__dirname, "public")));
-
-app.use("/api/ostokset", apiOstoksetRouter);
-
-app.use(virhekasittelija);
-
-app.use(
-  (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    if (!res.headersSent) {
-      res.status(404).json({ viesti: "Virheellinen reitti" });
-    }
-    next();
-  }
-);
-
-app.listen(portti, () => {
-  console.log(`Palvelin käynnistyi osoitteeseen: http://localhost:${portti}`);
-});
-```
-
-Käynnistetään palvelin ja testataan Postmanilla, että API toimii:
-
-```bash
-npm run dev
-```
-
-Testataan `GET http://localhost:3006/api/ostokset`. Vastauksen pitäisi olla tyhjä taulukko `[]`, koska tietokanta on uusi.
+[palvelinsovelluksen rakentaminen](./server/README.md)
 
 ---
 
