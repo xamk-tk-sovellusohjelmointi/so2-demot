@@ -517,9 +517,9 @@ Tarkistetaan ensin, että ostos löytyy. `delete()` poistaa sen tietokannasta. P
 
 Palvelin toimii nyt Postmanilla ja selaimella. Voit testata reittejä Postmanilla tai selaimella osoitteessa `http://localhost:3006/api/ostokset`.
 
-### Vaihe 14: CORS-tuki asiakassovellusta varten
+### [Vaihe 14: CORS-tuki asiakassovellusta varten](#cors-tuki)
 
-Tässä vaiheessa palvelin toimii normaalisti selaimella ja Postmanilla. Erillinen asiakassovellus eri portissa (esim. `http://localhost:3000`) ei kuitenkaan pysty hakemaan dataa palvelimelta. Selain estää pyynnön ja konsoliin tulee [CORS-virhe](../client/README.md).
+Tässä vaiheessa palvelin toimii normaalisti selaimella ja Postmanilla. Erillinen asiakassovellus eri portissa (esim. `http://localhost:3000`) ei kuitenkaan pysty hakemaan dataa palvelimelta. Selain estää pyynnön ja konsoliin tulee [CORS-virhe](../client/README.md/#cors-virhe).
 
 **CORS** (Cross-Origin Resource Sharing) on selaimen suojausmekanismi. Se rajoittaa selaimen tekemiä pyyntöjä eri **alkuperään** (origin). Alkuperä koostuu protokollasta, domain-nimestä ja portista. `http://localhost:3000` ja `http://localhost:3006` ovat eri alkuperiä, koska portti eroaa. Selain estää tällaiset pyynnöt oletuksena.
 

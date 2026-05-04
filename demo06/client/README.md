@@ -24,6 +24,7 @@ npm create vite@latest client -- --template react-ts
 | `client`                 | Luotavan kansion nimi (`.`-merkki luo projektin nykyiseen sijaintiin) |
 | `--`                     | Erottaa npm:n parametrit Viten parametreista                          |
 | `--template react-ts`    | React + TypeScript -pohja                                             |
+
 Vite kysyy asennuksen aikana kysymyksiä projektin alustukseen liittyen. Mennään oletusvalinnoilla painamalla Enteriä. Kun Vite kysyy, asennetaanko ja käynnistetäänkö projekti (npm install & npm run dev), valitaan kyllä.
 
 ### Vaihe 2: Oletusten siivous
@@ -192,11 +193,12 @@ export default App;
 
 Yllä olevassa koodissa luotiin uusi tietotyyppi TypeScript-interfacena nimeltä `ApiData`. Tämä kuvaa asiakassovelluksen ja palvelimen välisen kommunikaation tilaa.
 
-| Avain      | Selitys                                                                                                                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ostokset` | Palvelimen palauttama tieto ostoksista vastauksena asiakassovelluksen tekemään HTTP-pyyntöön (GET, POST, PUT, DELETE).                                                                                                                                                                |
-| `virhe`    | Virheellisissä pyynnöissä palvelin palauttaa asiakkaalle epäonnistuneen HTTP-statuksen (esim. 400). Tällaisissa tilanteissa asiakassovellus määrittää virheilmoituksen `apiData`-tilamuuttujan `virhe`-kenttään, joka voidaan näyttää sovelluksen käyttöliittymässä loppukäyttäjälle. |
-| `haettu`   | Haettu kuvaa tietoa siitä, onko palvelimen ostoslistan tietojen haku valmis vai kesken. Keskeneräisessä tilassa sovellus näyttää latausruudun käyttäjälle Backdrop-komponentissa.                                                                                                     |
+| Avain | Selitys |
+| -- | -- |
+| `ostokset` | Palvelimen palauttama tieto ostoksista vastauksena asiakassovelluksen tekemään HTTP-pyyntöön (GET, POST, DELETE). |
+| `virhe` | Virheellisissä pyynnöissä palvelin palauttaa asiakkaalle epäonnistuneen HTTP-statuksen (esim. 400). Tällaisissa tilanteissa asiakassovellus määrittää virheilmoituksen `apiData`-tilamuuttujan `virhe`-kenttään, joka voidaan näyttää sovelluksen käyttöliittymässä loppukäyttäjälle. |
+| `haettu` | Haettu kuvaa tietoa siitä, onko palvelimen ostoslistan tietojen haku valmis vai kesken. Keskeneräisessä tilassa sovellus näyttää latausruudun käyttäjälle Backdrop-komponentissa. |
+
 Yllä oleva koodi toimii käyttöliittymän runkona. Loppukäyttäjälle näytetään MUI:n Container-komponentti, joka asettelee sen sisällä olevat muut komponentit automaattisesti MUI:n asettelujen ja tyylien mukaisesti. Typography-komponenteilla voidaan näyttää käyttöliittymässä tekstisisältöä, esim. tässä sovelluksen pääotsikko ja alaotsikko.
 
 Tämän jälkeen `apiData`:n tietoja (joita vielä ei ole sen tarkemmin määritetty) käytetään ehdolliseen tulostukseen. Ehdollinen tulostus on tässä rakennettu ternary-operaationa, jonka rakenne menee:
@@ -217,7 +219,7 @@ Loogisesti yllä olevan koodi seuraa alla olevaa järjestystä:
 
 Selaimessa näkyy nyt latausikoni, koska `haettu` on `false` eikä dataa haeta vielä mistään.
 
-### Vaihe 6: Ensimmäinen API-kutsu ja CORS-virhe
+### [Vaihe 6: Ensimmäinen API-kutsu ja CORS-virhe](#cors-virhe)
 
 API-kutsu tarkoittaa siis samaa asiaa kuin HTTP-pyynnön tekeminen palvelimelle, jota on aiemmissa demoissa tehty suoraan manuaalisesti Postmanilla. Tehdään ensimmäinen API-kutsu palvelimelle kaikkien ostosten hakemiseksi. Lisätään `useEffect`-importti ja haetaan data:
 
@@ -323,7 +325,7 @@ has been blocked by CORS policy
 
 Virhe johtuu siitä, että asiakassovellus (`http://localhost:3000`) yrittää hakea dataa eri alkuperästä (`http://localhost:3006`). Selain estää tämän oletuksena. Tätä kutsutaan CORS-suojaukseksi (Cross-Origin Resource Sharing).
 
-Ongelma korjataan palvelimen puolella lisäämällä CORS-middleware. **[LINKKI: PALVELIN.md — Vaihe 14: CORS-tuki]**
+[Ongelma korjataan palvelimen puolella lisäämällä CORS-middleware](../server/README.md/#vaihe-14-cors-tuki-asiakassovellusta-varten).
 
 Kun palvelimelle on lisätty CORS-tuki ja palvelin on käynnistetty uudelleen, ladataan asiakassovelluksen sivu uudelleen ja sivun pitäisi päivittyä nyt normaalisti ja näyttää jotain tietoa ostoksista.
 
