@@ -519,7 +519,7 @@ Palvelin toimii nyt Postmanilla ja selaimella. Voit testata reittejä Postmanill
 
 ### [Vaihe 14: CORS-tuki asiakassovellusta varten](#vaihe-14-cors-tuki-asiakassovellusta-varten)
 
-Tässä vaiheessa palvelin toimii normaalisti selaimella ja Postmanilla. Erillinen asiakassovellus eri portissa (esim. `http://localhost:3000`) ei kuitenkaan pysty hakemaan dataa palvelimelta. Selain estää pyynnön ja konsoliin tulee [CORS-virhe](../client/README.md/#vaihe-6-ensimmainen-api-kutsu-ja-cors-virhe).
+Tässä vaiheessa palvelin toimii normaalisti selaimella ja Postmanilla. Erillinen asiakassovellus eri portissa (esim. `http://localhost:3000`) ei kuitenkaan pysty hakemaan dataa palvelimelta. Selain estää pyynnön ja konsoliin tulee [CORS-virhe](../client/README.md/#vaihe-6-ensimmäinen-api-kutsu-ja-cors-virhe).
 
 **CORS** (Cross-Origin Resource Sharing) on selaimen suojausmekanismi. Se rajoittaa selaimen tekemiä pyyntöjä eri **alkuperään** (origin). Alkuperä koostuu protokollasta, domain-nimestä ja portista. `http://localhost:3000` ja `http://localhost:3006` ovat eri alkuperiä, koska portti eroaa. Selain estää tällaiset pyynnöt oletuksena.
 
