@@ -1,0 +1,81 @@
+import express, { type Application, type Request, type Response } from 'express';
+import path from 'path';
+import kayttajat, { type Kayttaja } from './models/kayttajat';
+
+const app: Application = express();
+
+const port: number = Number(process.env.PORT) || 3002;
+
+interface Kayttajatieto {
+    id: number,
+    nimi: string,
+    sahkoposti: string,
+    kayttajatunnus: string,
+    rekisteroitymisPvm: string
+}
+
+interface Yhteystieto {
+    id: number,
+    nimi: string,
+    sahkoposti: string
+}
+
+app.use(express.static(path.join(import.meta.dirname, "public")));
+
+app.get("/kayttajatiedot", (req: Request, res: Response) => {
+
+    let kayttajatiedot: Kayttajatieto[] = kayttajat.map((kayttaja: Kayttaja) => {
+        return {
+            id: kayttaja.id,
+            nimi: `${kayttaja.etunimi} ${kayttaja.sukunimi}`,
+            sahkoposti: kayttaja.sahkoposti,
+            kayttajatunnus: kayttaja.kayttajatunnus,
+            rekisteroitymisPvm: kayttaja.rekisteroitymisPvm
+        }
+    });
+
+    if (typeof req.query.vuosi === "string") {
+
+        kayttajatiedot = kayttajatiedot.filter((kayttajatieto: Kayttajatieto) => kayttajatieto.rekisteroitymisPvm.substring(0, 4) === req.query.vuosi);
+
+    }
+
+    res.json(kayttajatiedot);
+
+});
+
+app.get("/yhteystiedot", (req: Request, res: Response) => {
+
+    let yhteystiedot: Yhteystieto[] = kayttajat.map((kayttaja: Kayttaja) => {
+        return {
+            id: kayttaja.id,
+            nimi: `${kayttaja.etunimi} ${kayttaja.sukunimi}`,
+            sahkoposti: kayttaja.sahkoposti
+        }
+    });
+
+    res.json(yhteystiedot);
+
+});
+
+app.get("/yhteystiedot/:id", (req: Request, res: Response) => {
+
+    let yhteystieto: Yhteystieto | undefined = kayttajat.map((kayttaja: Kayttaja) => {
+        return {
+            id: kayttaja.id,
+            nimi: `${kayttaja.etunimi} ${kayttaja.sukunimi}`,
+            sahkoposti: kayttaja.sahkoposti
+        }
+    }).find((yhteystieto: Yhteystieto) => yhteystieto.id === Number(req.params.id));
+
+    if (yhteystieto) {
+        res.json(yhteystieto);
+    } else {
+        res.json({ virhe: `Käyttäjää id : ${req.params.id} ei löytynyt` });
+    }
+
+});
+
+app.listen(port, () => {
+    console.log(`Palvelin käynnistettiin osoitteeseen: http://localhost:${port}`);
+});
