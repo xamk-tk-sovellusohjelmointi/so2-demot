@@ -334,4 +334,4 @@ Onnistuneet pyynnöt (oikeamuotoinen `tuote` ja `poimittu`, olemassa oleva id) t
 
 Demossa lisättiin demon 3 REST-rajapintaan kunnollinen virheenkäsittely: omaan luokkaan (`Virhe`) mallinnetut, tunnistettavat virhetilanteet, keskitetty virheenkäsittelymiddleware, tuntemattomien reittien käsittely, ja pyyntöjen validointi ennen tiedon tallentamista. Samalla nähtiin käytännössä, miten Express 5:n automaattinen async-virheiden välitys, jota demo 3 vain sivusi, tekee reittien koodista yksinkertaisempaa, koska reitissä riittää heittää `Virhe`, eikä joka reittiin tarvitse kirjoittaa omaa virheenkäsittelyä.
 
-Myöhemmissä demoissa tallennus tapahtuu todennäköisesti tekstitiedoston sijaan tietokantaan, mutta samat periaatteet, validointi ennen tallennusta ja virheiden välittäminen keskitetylle käsittelijälle, pätevät silloinkin.
+Myöhemmissä demoissa tallennus tapahtuu tekstitiedoston sijaan tietokantaan, mutta samat periaatteet, validointi ennen tallennusta ja virheiden välittäminen keskitetylle käsittelijälle, pätevät silloinkin.
