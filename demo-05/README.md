@@ -5,7 +5,8 @@ Ostoslistasovellus toimii käyttäjän kannalta täsmälleen kuten demoissa 3 ja
 Prismalle kuvataan sovelluksen tietomalli yhteen tiedostoon. Sen pohjalta muodostetaan sekä tietokannan taulut että TypeScript-tyypit ja tietokantaa käsittelevät metodit. Reitit pysyvät asiakassovellukselle samanlaisina, mutta niiden sisällä ajetaan nyt oikeita tietokantakyselyitä.
 
 > [!WARNING]
-> **Prisma v7 asennusohjeet** löytyvät [prisma7-asennus.md](./prisma7-asennus.md) -tiedostosta. Siellä on muutama huomio Prisman käyttöön demoissa, joka kannattaa huomioida.
+> **Prisma v7 asennusohjeet** löytyvät [virallisesta dokumentaatiosta](https://www.prisma.io/docs/v7/prisma-orm/quickstart/sqlite).
+> Ohjeistus oli vielä 15.9.2026 virheellinen, mutta se on päivitetty 18.9. korjauksin.
 
 ## Sisällysluettelo
 
