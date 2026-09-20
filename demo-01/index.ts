@@ -1,4 +1,4 @@
-import express, { type Application, type Request, type Response} from 'express';
+import express, { type Application, type Request, type Response } from 'express';
 import path from 'path';
 
 const app: Application = express();

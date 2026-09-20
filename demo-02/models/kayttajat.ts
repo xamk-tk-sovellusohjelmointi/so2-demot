@@ -1,4 +1,4 @@
- export interface Kayttaja {
+export interface Kayttaja {
     id: number;
     sukunimi: string;
     etunimi: string;
@@ -7,9 +7,9 @@
     salasana: string;
     ipOsoite: string;
     rekisteroitymisPvm: string;
- }
- 
- const kayttajat: Kayttaja[] = [
+}
+
+const kayttajat: Kayttaja[] = [
     {
         "id": 1,
         "sukunimi": "Thorsby",

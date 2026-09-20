@@ -1,4 +1,4 @@
-import express, { type Application, type NextFunction, type Request, type Response} from 'express';
+import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import path from 'path';
 import apiOstoksetRouter from './routes/apiOstokset';
 import virhekasittelija, { Virhe } from './errors/virhekasittelija';
