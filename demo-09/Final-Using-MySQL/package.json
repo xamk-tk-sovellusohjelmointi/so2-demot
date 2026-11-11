@@ -1,0 +1,32 @@
+{
+  "name": "demo-09-starter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "engines": {
+    "node": "^24.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch ./index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.3",
+    "prisma": "7.10.0",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "18.0.1",
+    "express": "5.2.1"
+  },
+  "allowScripts": {
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "esbuild@0.28.2": true
+  }
+}

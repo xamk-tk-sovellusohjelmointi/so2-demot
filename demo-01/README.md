@@ -1,55 +1,99 @@
-# Demo 1: Express-palvelimen perusteet
-
-Ensimmäisessä palvelinkehityksen demossa rakennetaan yksinkertainen palvelinsovellus Express-kehyksellä. Kyseessä on palvelinohjelmoinnin oma versio "Hello World" -sovelluksesta, jolla varmistetaan uuden tekniikan toimivan ja opetellaan sen peruskäyttöä. Palvelin tarjoilee käyttäjälle etusivun, jolta löytyy muutama linkki, ja linkkejä painamalla selain pyytää palvelimelta eri osoitteita. Palvelin vastaa jokaiseen pyyntöön omalla tervehdyksellään, joko käyttäjän itse antamalla nimellä muotoillun tervehdyksen tai yksinkertaisen "Moikka!"-viestin.
+# Demo 1: Express-perusteita
 
 ## Sisällysluettelo
 
-- [1 Node-projektin alustus ja määritykset](#1-node-projektin-alustus-ja-määritykset)
-  - [1.1 package.json ja projektin perustiedot](#11-packagejson-ja-projektin-perustiedot)
-  - [1.2 tsconfig.json ja TypeScript-asetukset](#12-tsconfigjson-ja-typescript-asetukset)
-- [2 Riippuvuuksien asennus](#2-riippuvuuksien-asennus)
-  - [2.1 npm ci vs. npm install](#21-npm-ci-vs-npm-install)
-  - [2.2 Projektin riippuvuudet](#22-projektin-riippuvuudet)
-- [3 Express-palvelimen luonti ja käynnistys](#3-express-palvelimen-luonti-ja-käynnistys)
-- [4 Staattisten tiedostojen tarjoilu](#4-staattisten-tiedostojen-tarjoilu)
-- [5 Reittien rakentaminen](#5-reittien-rakentaminen)
-  - [5.1 GET /heippa ja kyselyparametrit](#51-get-heippa-ja-kyselyparametrit)
-  - [5.2 GET /moikka](#52-get-moikka)
-- [6 Palvelimen käynnistäminen ja reittien testaaminen](#6-palvelimen-käynnistäminen-ja-reittien-testaaminen)
-- [7 Lopuksi](#7-lopuksi)
+- [1. Oppimistavoitteet](#1-oppimistavoitteet)
+- [2. Kloonaus ja käynnistys](#2-kloonaus-ja-käynnistys)
+- [3. Projektin rakenne alussa](#3-projektin-rakenne-alussa)
+- [4. Tutoriaali](#4-tutoriaali)
+  - [4.1 Node.js 24:n asentaminen](#41-nodejs-24n-asentaminen)
+  - [4.2 Projektikansio ja paketit](#42-projektikansio-ja-paketit)
+  - [4.3 TypeScriptin asetukset](#43-typescriptin-asetukset)
+  - [4.4 Ensimmäinen Express-palvelin](#44-ensimmäinen-express-palvelin)
+  - [4.5 Ensimmäinen reitti](#45-ensimmäinen-reitti)
+  - [4.6 Kyselyparametrit](#46-kyselyparametrit)
+  - [4.7 Staattiset tiedostot](#47-staattiset-tiedostot)
+  - [4.8 Tyyppien tarkistaminen](#48-tyyppien-tarkistaminen)
+- [5. Projektin rakenne lopussa](#5-projektin-rakenne-lopussa)
+- [6. Yhteenveto](#6-yhteenveto)
+- [7. Jatka harjoittelua](#7-jatka-harjoittelua)
 
-**Projektin asentaminen ja käynnistäminen**
+## 1. Oppimistavoitteet
 
-Kun olet kloonannut demon omalle koneellesi, siirry VS Coden Terminalissa demon kansioon ja asenna riippuvuudet komennolla
+Sovellusohjelmointi 2 -kurssilla rakennetaan sovellusten palvelinpuolta. Ensimmäisessä demossa luodaan Node.js-ympäristössä toimiva Express-palvelin, joka kirjoitetaan TypeScriptillä. Palvelin jakaa selaimelle HTML-sivun ja kuvan `public`-kansiosta ja vastaa kahteen omaan reittiin, joista toinen lukee nimen osoitteen kyselyparametrista.
+
+Demon jälkeen osataan:
+
+- asentaa Node.js 24 ja tarkistaa asennettu versio
+- asentaa projektin lukitut pakettiversiot komennolla `npm ci`
+- tunnistaa `package.json`-, `package-lock.json`- ja `tsconfig.json`-tiedostojen tehtävät Express-projektissa
+- luoda Express-sovellus ja käynnistää se tiettyyn porttiin
+- käynnistää palvelin kehitystilassa `tsx`-työkalulla, joka käynnistää palvelimen uudelleen koodin muuttuessa
+- määritellä GET-reittejä, jotka vastaavat selaimelle HTML-merkkijonolla
+- lukea kyselyparametrin arvo `req.query`-oliosta ja varautua sen puuttumiseen
+- jakaa staattisia tiedostoja `express.static`-väliohjelmistolla
+- tarkistaa TypeScript-tyypit erillisellä `npm run typecheck` -komennolla
+
+## 2. Kloonaus ja käynnistys
+
+Valmis demo ladataan kurssin repositoriosta, sen paketit asennetaan ja palvelin käynnistetään seuraavilla komennoilla. Komennot edellyttävät, että Node.js 24 on asennettu luvun [4.1](#41-nodejs-24n-asentaminen) ohjeella.
+
+```bash
+git clone https://github.com/xamk-tk-sovellusohjelmointi/so2-demot.git
+cd so2-demot/demo-01
+npm ci
+npm run dev
+```
+
+Palvelin käynnistyy osoitteeseen <http://localhost:3001>, joka avataan selaimessa.
+
+> [!IMPORTANT]
+> Demo on lukittu tarkoituksella Node.js 24:ään ja `package-lock.json`-tiedoston pakettiversioihin, ja tutoriaali on testattu juuri niillä versioilla. Paketit asennetaan komennolla `npm ci`. Muut versiot (esimerkiksi ilman versionumeroa annetusta asennuskomennosta, kirjaston omasta dokumentaatiosta kopioidusta komennosta tai hyväksytystä "update available" -kehotteesta) voivat poiketa tutoriaalista eivätkä välttämättä toimi.
+
+## 3. Projektin rakenne alussa
+
+Demo alkaa tyhjästä projektikansiosta.
+
+```text
+demo-01/
+```
+
+## 4. Tutoriaali
+
+### 4.1 Node.js 24:n asentaminen
+
+Node.js on **ajoympäristö** (runtime), jolla JavaScript-koodia suoritetaan selaimen ulkopuolella. SO1-kurssilla Node.js oli käytössä Viten ja npm:n taustalla, mutta nyt sillä ajetaan itse sovellusta. Kaikki kurssin palvelinsovellukset ovat Node.js-ohjelmia, joten se asennetaan ensimmäisenä.
+
+Kurssilla käytetään Node.js:n versiota 24 koko syksyn 2026 lukukauden ajan, vaikka Node.js 26 nousee LTS-versioksi lokakuussa 2026. Asennus tehdään Windowsissa seuraavasti.
+
+1. Avataan Node.js:n virallinen lataussivu <https://nodejs.org/en/download>.
+2. Sivun versiovalikosta valitaan versio 24, jonka perässä on merkintä LTS. Valinnalla on merkitystä, koska lokakuusta 2026 alkaen sivu tarjoaa oletuksena Node.js 26:ta.
+3. Ladataan Windows-asennusohjelma (`.msi`) ja ajetaan se oletusasetuksilla.
+4. Avataan uusi komentorivi-ikkuna ja tarkistetaan asennettu versio.
+
+```bash
+node --version
+```
+
+Tulosteen täytyy alkaa `v24.`. Jos se alkaa jollain muulla numerolla, koneella on käytössä eri Node.js-versio, ja versio 24 asennetaan yllä olevilla ohjeilla.
+
+> ⚠️ **FACT-CHECK:** Windows-asennuksen vaiheita (oletusasetukset, uusi komentorivi-ikkuna, v24:n asentaminen toisen Node.js-version päälle) ei testattu Windowsilla, eikä lataussivun versiovalikkoa voitu tarkistaa, koska sivu muodostuu JavaScriptillä.
+
+macOS:lle samalta lataussivulta löytyy `.pkg`-asennusohjelma, ja Linuxille sivu antaa omat asennusohjeensa. Versio tarkistetaan niissäkin samalla komennolla.
+
+Node.js:n asennuksen mukana tulee npm, jolla projektin paketit asennetaan. Aiheesta lisää: [Introduction to Node.js](https://nodejs.org/en/learn/getting-started/introduction-to-nodejs).
+
+### 4.2 Projektikansio ja paketit
+
+Projektille luodaan oma kansio, esimerkiksi `demo-01`. Kurssin demot käyttävät lukittuja pakettiversioita, joten uuteen projektiin ei asenneta paketteja yksitellen. Kansioon kopioidaan demon `package.json`, `package-lock.json` ja `tsconfig.json`, minkä jälkeen paketit asennetaan projektikansiossa komennolla `npm ci`.
 
 ```bash
 npm ci
 ```
 
-ja käynnistä palvelin kehitystilassa komennolla
+`npm ci` asentaa `package-lock.json`-tiedostoon kirjatut versiot `node_modules`-kansioon. Lukitustiedosto sisältää koko riippuvuuspuun eli myös pakettien omat riippuvuudet, joten asennus tuottaa täsmälleen saman kokonaisuuden kuin demossa. Aiheesta lisää: [npm ci -dokumentaatio](https://docs.npmjs.com/cli/commands/npm-ci).
 
-```bash
-npm run dev
-```
-
-Palvelin käynnistyy oletuksena osoitteeseen `http://localhost:3001`. Palvelimen pysäyttää komennolla `Ctrl+C`, ja käynnistää uudelleen ajamalla `npm run dev` uudelleen.
-
-## 1 Node-projektin alustus ja määritykset
-
-Tällä opintojaksolla ohjelmoitavat palvelinsovellukset suoritetaan Node.js-ympäristössä. Aiemmissa React-demoissa Vite-työkalu rakensi kehitysympäristön automaattisesti, mutta nyt kehitysympäristö rakennetaan itse. Node-projektin juureen määritetään tätä varten projektin asetukset (`package.json`), TypeScript-kääntäjän asetukset (`tsconfig.json`) ja tiedosto `.nvmrc`, joka lukitsee projektin käyttämään Node-versiota 24 [nvm](https://github.com/nvm-sh/nvm)-työkalulla (`nvm use`).
-
-Jos aloitat ohjelmoimaan uutta sovellusta, sinun pitää alustaa tyhjä kansio Node-projektiksi komennolla:
-
-```bash
-npm init -y
-```
-
-Komento luo kansioon package.json -tiedoston, jota katsotaan seuraavaksi.
-
-> [!TIP]
-> Demo on tarkoituksella versiolukittu Node 24 -versioon ja `package.json`:ssa (sekä `package-lock.json`:ssa) määriteltyihin riippuvuusversioihin. Näin kaikilla kurssilla on käytössä sama ympäristö, eivätkä versioerot aiheuta selittämättömiä eroja koodin toiminnassa.
-
-### 1.1 package.json ja projektin perustiedot
+Demon `package.json` näyttää tältä.
 
 ```json
 {
@@ -65,160 +109,247 @@ Komento luo kansioon package.json -tiedoston, jota katsotaan seuraavaksi.
     "typecheck": "tsc --noEmit"
   },
   "type": "module",
-  ...
-}
-```
-
-- `"main"`-kenttä määrittää sovelluksen käynnistystiedostoksi `index.ts`.
-- `"type": "module"` määrittää, että projektin JavaScript- ja TypeScript-tiedostot tulkitaan ES-moduuleina (`import`/`export`) eikä Node:n vanhemman CommonJS-järjestelmän mukaisesti (`require`/`module.exports`).
-- `"engines": { "node": "^24.0.0" }` määrittää projektin vaatiman Node-version. Npm ei oletuksena estä asennusta muulla versiolla, mutta tieto ohjaa kehittäjää ja työkaluja (esim. `nvm use`) oikean version pariin.
-- `"scripts"`-kohdassa määritellään komennot, joita ajetaan `npm run <nimi>` -komennolla. `dev` käynnistää kehityspalvelimen, ja `typecheck` tarkistaa koodin tyypit ilman että mitään käännetään levylle.
-
-> [!NOTE]
-> Aiemmissa React-demoissa projekti käynnistettiin `npm run dev` -komennolla, joka käynnisti Viten kehityspalvelimen. Sama `scripts`-komento löytyy tästäkin projektista, mutta sen takana on nyt eri työkalu, `tsx watch`. Komentojen nimet (esim. `dev`, `build`, `start`, `test`) ovat kehittäjän itse valittavissa olevia projektikohtaisia nimiä, eivät minkään työkalun kiinteitä vaatimuksia. Useimmissa ohjelmointiprojekteissa käytetään samanlaisia termejä.
-
-### 1.2 tsconfig.json ja TypeScript-asetukset
-
-`tsconfig.json` määrittää, miten TypeScript-kääntäjä tulkitsee ja tarkistaa projektin koodin.
-
-```json
-{
-  "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ES2023",
-    "lib": ["esnext"],
-    "types": ["node"],
-
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-    "esModuleInterop": true
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.3",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "express": "5.2.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
 ```
 
-Demon kannalta oleellisimmat asetukset ovat `"strict": true`, joka kytkee päälle TypeScriptin tiukimmat tyyppitarkastukset kerralla, ja `"verbatimModuleSyntax": true`, joka pakottaa merkitsemään pelkkää tyypitystä varten tuodut asiat `type`-avainsanalla (esim. `import { type Request } from 'express'`, ks. luku [3](#3-express-palvelimen-luonti-ja-käynnistys)). Muut asetukset liittyvät projektin moduulijärjestelmään ja kääntäjän tarkkuuteen, eikä niitä tarvitse käydä läpi yksitellen tämän demon ymmärtämiseksi. Tarkemmin niistä voi lukea [TypeScriptin dokumentaatiosta](https://www.typescriptlang.org/tsconfig/).
+`dependencies`-kohdassa on sovelluksen ainoa ajonaikainen paketti Express, joka on Node.js:lle tehty palvelinkirjasto. `devDependencies`-kohdan paketteja tarvitaan vain kehityksen aikana. `typescript` tarkistaa tyypit, `tsx` suorittaa TypeScript-tiedostoja suoraan, ja `@types/node` ja `@types/express` sisältävät Node.js:n ja Expressin tyyppimääritykset.
 
-## 2 Riippuvuuksien asennus
-
-### 2.1 npm ci vs. npm install
-
-Riippuvuudet asennetaan komennolla
+Samat `package.json`-tiedoston rivit syntyvät alla olevilla asennuskomennoilla. Komennot näytetään vain, jotta nähdään, mistä rivit ovat peräisin. Niitä ei ajeta `npm ci`:n jälkeen. Valitsin `-E` tallentaa tarkan versionumeron, ja `-D` merkitsee paketin kehitysaikaiseksi.
 
 ```bash
-npm ci
+npm install -E express@5.2.1
+npm install -E -D typescript@7.0.2 tsx@4.23.13 @types/node@22.20.3 @types/express@5.0.6
 ```
 
-`npm ci` poistaa ensin olemassa olevan `node_modules`-kansion kokonaan ja asentaa sitten täsmälleen ne versiot, jotka on kirjattu `package-lock.json`-tiedostoon, muuttamatta lock-tiedostoa. `npm install` puolestaan lukee `package.json`:n ja voi samalla päivittää `package-lock.json`-tiedostoa, jos riippuvuuksista löytyy uudempia, `package.json`:n salliman versiovälin sisällä olevia versioita. Kloonatussa demossa kannattaa käyttää `npm ci`:tä, koska sillä varmistaa projektin asentuvan täysin samoilla riippuvuuksien versioilla, jolloin ohjeistukset pysyvät yhdenmukaisena, vaikka riippuvuuksista julkaistaisiinkin uusia versioita myöhemmin.
+`"type": "module"` ottaa käyttöön ES-moduulit, jolloin tiedostoissa käytetään `import`-lauseita. `engines` kertoo, että projekti on tehty Node.js 24:lle. `scripts` määrittelee komennot `npm run dev` ja `npm run typecheck`, joita käytetään luvuissa 4.4 ja 4.8.
 
-### 2.2 Projektin riippuvuudet
+`allowScripts` hyväksyy `esbuild`-paketin asennusskriptin. `esbuild` asentuu `tsx`:n riippuvuutena, ja ilman hyväksyntää npm tulostaa asennuksen yhteydessä varoituksen tarkistamattomasta asennusskriptistä. Saman kentän tuottaa komento `npm approve-scripts esbuild`.
 
-Node-projekteissa käytetään yleisesti ulkoisia paketteja, jotka asennetaan komennolla `npm install <paketti>` (tai `npm install -D <paketti>`, jos paketti tarvitaan vain kehityksen aikana). Tässä demossa paketit on jo listattu `package.json`:iin valmiiksi, joten `npm ci` (luku [2.1](#21-npm-ci-vs-npm-install)) riittää asentamaan ne kaikki kerralla.
+> [!NOTE]
+> Tyhjään kansioon voi luoda uuden `package.json`-tiedoston myös komennolla `npm init -y`. Se tuottaa oletusarvoisen tiedoston, jossa on esimerkiksi `"type": "commonjs"`, joten kurssin projekteissa lähtökohdaksi kopioidaan demon valmis tiedosto.
 
-> [!TIP]
-> Kun aloitat oman projektin tyhjästä, ei ole aina itsestään selvää, mistä tietää mitkä paketit projektiin kannattaa valita. Hyviä tapoja selvittää asiaa ovat pakettien viralliset dokumentaatiot, aiheeseen liittyvät tutoriaalit, ja kysyminen tekoälyltä. Tätä samaa taitoa harjoitellaan tällä kurssilla koko ajan.
+### 4.3 TypeScriptin asetukset
 
-`package.json`:n `dependencies`- ja `devDependencies`-kentistä löytyvät seuraavat paketit:
+`tsconfig.json` määrittää, miten TypeScript tarkistaa projektin koodin. Tiedoston pohjana on komennon `npx tsc --init` luoma oletustiedosto, jonka asetuksia on muokattu Node.js-palvelimelle sopiviksi.
 
 ```json
-"dependencies": {
-  "express": "5.2.1"
-},
-"devDependencies": {
-  "@types/express": "5.0.6",
-  "@types/node": "22.20.3",
-  "tsx": "4.23.13",
-  "typescript": "7.0.2"
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    // "rootDir": "./src",
+    // "outDir": "./dist",
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2023",
+    "lib": [
+      "esnext"
+    ],
+    "types": [
+      "node"
+    ],
+    // For nodejs:
+    // "lib": ["esnext"],
+    // "types": ["node"],
+    // and npm install -D @types/node
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+    // Recommended Options
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+  }
 }
 ```
 
-- `express` on palvelinkehys, joka hoitaa HTTP-pyyntöjen vastaanottamisen, reitittämisen ja vastausten muodostamisen. Se on varsinainen riippuvuus (`dependencies`), koska sovellus tarvitsee sitä myös suorituksessa.
-- `@types/express` ja `@types/node` sisältävät TypeScript-tyyppimäärittelyt Expressille ja Node:n sisäänrakennetuille moduuleille. Molemmat ovat `devDependencies`-listalla, koska niitä tarvitaan vain kehitysvaiheessa.
-- `tsx` ajaa TypeScript-tiedostoja suoraan Nodella ilman erillistä käännösvaihetta, ja `tsx watch` käynnistää palvelimen automaattisesti uudelleen tiedostomuutosten yhteydessä. Vastaa periaatteeltaan mahdollisesti tuttua `ts-node`+`nodemon`-yhdistelmää, mutta yhtenä pakettina ja on modernimpi.
-- `typescript` on TypeScript-kääntäjä, jota käytetään `typecheck`-skriptissä tyyppien tarkistamiseen ilman että mitään käännetään levylle.
+Oletustiedostoon verrattuna muutetut kohdat ovat `module`, `moduleResolution`, `target`, `lib`, `types` ja `esModuleInterop`, ja React-projekteja varten oleva `jsx`-asetus on poistettu. Kun `types`-kohdassa on `node`, TypeScript ottaa käyttöön `@types/node`-paketin tyypit, jolloin esimerkiksi `process` ja `path` tunnistetaan. `strict` ottaa käyttöön tiukan tyyppitarkistuksen. `verbatimModuleSyntax` vaatii, että pelkät tyypit tuodaan `import`-lauseessa `type`-sanalla merkittyinä. Tämä näkyy luvun 4.4 koodissa.
 
-## 3 Express-palvelimen luonti ja käynnistys
+Tiedostoa ei tarvitse muokata demon aikana. Aiheesta lisää: [TSConfig-dokumentaatio](https://www.typescriptlang.org/tsconfig/).
 
-Kehitysympäristön asetukset ovat nyt valmiit, joten seuraavaksi aletaan kirjoittaa itse palvelinta. Palvelin määritellään ja käynnistetään `index.ts`-tiedostossa:
+### 4.4 Ensimmäinen Express-palvelin
 
-```ts
-import express, { type Application, type Request, type Response} from 'express';
-import path from 'path';
+**Palvelin** (server) on ohjelma, joka kuuntelee verkosta tulevia **pyyntöjä** (requests) ja lähettää niihin **vastauksia** (responses). Selain lähettää pyynnön esimerkiksi silloin, kun osoiteriville kirjoitetaan osoite. Express tarjoaa valmiit välineet pyyntöjen käsittelyyn, joten palvelinta ei tarvitse rakentaa Node.js:n perusmoduulien varaan.
+
+Projektin juureen luodaan tiedosto `index.ts`.
+
+```typescript
+import express, { type Application } from 'express';
 
 const app: Application = express();
 
 const port: number = Number(process.env.PORT) || 3001;
-
-// ...
 
 app.listen(port, () => {
     console.log(`Palvelin käynnistettiin osoitteeseen: http://localhost:${port}`);
 });
 ```
 
-`Application`, `Request` ja `Response` on merkitty tuonnissa `type`-avainsanalla, koska ne tuodaan vain tyypitykseen eikä ajonaikaiseksi koodiksi (ks. luku [1.2](#12-tsconfigjson-ja-typescript-asetukset)).
+`express()` luo sovellusolion `app`, jonka tyyppi on Expressin `Application`. Kaikki palvelimen toiminnot määritellään tämän olion kautta. `Application` on pelkkä tyyppi, joten se tuodaan `type`-sanalla luvussa 4.3 mainitun `verbatimModuleSyntax`-asetuksen vuoksi.
 
-Ensin luodaan Express-sovellus kutsumalla `express()`-funktiota, ja tulos tallennetaan tavanomaisesti `app`-nimiseen muuttujaan. Tähän samaan `app`-olioon liitetään jatkossa kaikki reitit ja middlewaret. `Application`-tyyppi on kirjoitettu näkyviin, mutta ei ole pakollinen, koska TypeScript päättelisi saman tyypin myös ilman merkintää.
+**Portti** (port) on numero, jolla koneen verkkoliikenne ohjataan oikealle ohjelmalle. Portti luetaan ensin **ympäristömuuttujasta** (environment variable) `PORT`, jonka arvo on Node.js:ssä saatavilla `process.env`-oliosta. Jos muuttujaa ei ole asetettu, `Number(process.env.PORT)` on `NaN` ja `||`-operaattori valitsee oletusarvon `3001`. Paikallisessa kehityksessä palvelin toimii siis portissa 3001.
 
-Portti, jota vastaan palvelin kuuntelee, määritetään lausekkeella `Number(process.env.PORT) || 3001`. `process.env.PORT` on ympäristömuuttuja, jonka avulla porttia voi vaihtaa ilman koodimuutosta, ja `|| 3001` antaa oletusportin, jos muuttujaa ei ole asetettu.
+`app.listen` käynnistää palvelimen kuuntelemaan porttia. Toisena parametrina annettu funktio suoritetaan, kun palvelin on käynnistynyt, ja se tulostaa palvelimen osoitteen komentoriville.
 
-`app.listen(port, ...)` käynnistää palvelimen kuuntelemaan pyyntöjä annetussa portissa. Toinen parametri on funktio, joka suoritetaan heti kun palvelin on käynnistynyt, ja tässä demossa se vain tulostaa varmistusviestin.
+Palvelin käynnistetään kehitystilassa.
 
-Käynnistä palvelin (luku [6](#6-palvelimen-käynnistäminen-ja-reittien-testaaminen)) ja avaa selaimessa `http://localhost:3001`. Näytölle tulee Expressin oletusvirhe `Cannot GET /`, koska sovellukseen ei ole vielä määritelty yhtään reittiä osoitteelle `/`.
+```bash
+npm run dev
+```
 
-Kokeile lisätä palvelimeen väliaikaisesti yksinkertainen reitti ennen `app.listen`-kutsua:
+Komento suorittaa `package.json`-tiedoston `dev`-skriptin `tsx watch ./index.ts`. `tsx` on työkalu, joka suorittaa TypeScript-tiedoston suoraan ilman erillistä käännösvaihetta. `watch`-tila käynnistää palvelimen uudelleen aina, kun tiedosto tallennetaan. Palvelin pysäytetään komentorivillä näppäinyhdistelmällä `Ctrl + C`. Aiheesta lisää: [tsx-dokumentaatio](https://tsx.hirok.io/).
 
-```ts
-app.get("/", (req, res) => {
-    res.send("Palvelin toimii!");
+Komentoriville tulostuu `Palvelin käynnistettiin osoitteeseen: http://localhost:3001`. Kun osoite avataan selaimessa, palvelin vastaa virheellä `Cannot GET /`, koska sille ei ole vielä määritelty yhtään vastattavaa osoitetta. Aiheesta lisää: [Expressin Hello world -esimerkki](https://expressjs.com/en/starter/hello-world.html).
+
+### 4.5 Ensimmäinen reitti
+
+**Reitti** (route) yhdistää pyynnön osoitteen ja **HTTP-metodin** (HTTP method) funktioon, joka muodostaa vastauksen. Selain käyttää osoiterivin kautta tehdyissä pyynnöissä GET-metodia, joten reitit määritellään `app.get`-metodilla. Ensimmäinen reitti vastaa osoitteeseen `/moikka`.
+
+```typescript
+import express, { type Application, type Request, type Response } from 'express'; // muutettu
+
+const app: Application = express();
+
+const port: number = Number(process.env.PORT) || 3001;
+
+app.get("/moikka", (req: Request, res: Response) => { // uusi
+    res.send("<h1>Moikka!</h1>") // uusi
+}); // uusi
+
+app.listen(port, () => {
+    console.log(`Palvelin käynnistettiin osoitteeseen: http://localhost:${port}`);
 });
 ```
 
-Käynnistä palvelin uudelleen ja lataa sivu, niin näet tulostetun tekstin `Cannot GET /` -virheen sijaan. Poista tämä rivi tämän jälkeen, sillä juuriosoite `/` otetaan seuraavaksi käyttöön toisella tavalla.
+`app.get` saa ensimmäisenä parametrina polun ja toisena **käsittelijäfunktion** (handler), jota Express kutsuu jokaisella polkuun tulevalla pyynnöllä. Käsittelijä saa kaksi parametria. `req` on `Request`-tyyppinen olio, joka sisältää pyynnön tiedot, ja `res` on `Response`-tyyppinen olio, jolla vastaus lähetetään. `Request` ja `Response` lisätään `import`-lauseeseen samalla tavalla `type`-sanalla kuin `Application`.
 
-## 4 Staattisten tiedostojen tarjoilu
+`res.send` lähettää merkkijonon vastauksena. Merkkijonona annettu vastaus lähetetään HTML-sisältönä, joten selain näyttää `<h1>`-elementin otsikkona.
 
-Staattisilla tiedostoilla tarkoitetaan tiedostoja (HTML, CSS, kuvat), jotka palvelin tarjoilee suoraan sellaisenaan ilman että niille pitää kirjoittaa omaa reittiä jokaiselle erikseen. Tätä varten projektiin on luotu `public`-kansio, ja sen sisään tiedosto `index.html`, jonka Express tulkitsee automaattisesti palvelimen juurisivuksi.
+Tallennuksen jälkeen `tsx` käynnistää palvelimen uudelleen, ja osoitteessa <http://localhost:3001/moikka> näkyy otsikko "Moikka!". Aiheesta lisää: [Expressin reititysopas](https://expressjs.com/en/guide/routing.html).
 
-```ts
-app.use(express.static(path.join(import.meta.dirname, "public")));
+### 4.6 Kyselyparametrit
+
+**Kyselyparametrit** (query parameters) ovat osoitteen perään `?`-merkin jälkeen kirjoitettuja nimi–arvo-pareja, esimerkiksi `/heippa?nimi=Matti`. Niillä pyyntöön saadaan mukaan tietoa ilman, että jokaiselle arvolle tarvitaan oma reitti. Seuraava reitti `/heippa` tervehtii nimeä, joka annetaan kyselyparametrissa `nimi`.
+
+```typescript
+import express, { type Application, type Request, type Response } from 'express';
+
+const app: Application = express();
+
+const port: number = Number(process.env.PORT) || 3001;
+
+app.get("/heippa", (req: Request, res: Response) => { // uusi
+
+    let nimi: string = ""; // uusi
+
+    if (typeof req.query.nimi === "string") { // uusi
+        nimi = req.query.nimi; // uusi
+    } else { // uusi
+        nimi = "tuntematon"; // uusi
+    } // uusi
+
+    res.send(`<h1>Heippa ${nimi}!</h1>`); // uusi
+
+}); // uusi
+
+app.get("/moikka", (req: Request, res: Response) => {
+    res.send("<h1>Moikka!</h1>")
+});
+
+app.listen(port, () => {
+    console.log(`Palvelin käynnistettiin osoitteeseen: http://localhost:${port}`);
+});
 ```
 
-`app.use()` liittää sovellukseen middlewaren, eli funktion, joka käsittelee jokaisen saapuvan pyynnön ennen kuin se ohjautuu varsinaiselle reitille. `express.static()` on Expressin sisäänrakennettu middleware, joka tarjoilee sille annetun kansion sisällön suoraan tiedostoina. Jos selain esimerkiksi pyytää osoitetta `/img/xamklogo.png`, Express etsii tiedoston annetusta kansiosta ja palauttaa sen sellaisenaan.
+Express kokoaa kyselyparametrit `req.query`-olioon, jossa parametrin nimi on avaimena. `req.query.nimi` ei kuitenkaan ole aina merkkijono. Jos parametri puuttuu, arvo on `undefined`, ja jos sama parametri annetaan osoitteessa kahdesti, arvo on taulukko. `typeof`-tarkistus varmistaa, että muuttujaan `nimi` sijoitetaan vain merkkijono. Muissa tapauksissa käytetään arvoa `"tuntematon"`. Tarkistus tarvitaan myös TypeScriptin vuoksi, koska `req.query.nimi` ei tyypiltään kelpaa suoraan `string`-muuttujaan.
 
-Kansion polku muodostetaan `path.join(import.meta.dirname, "public")` -kutsulla, joka yhdistää nykyisen tiedoston sijainnin ja `public`-alikansion nimen käyttöjärjestelmän mukaiseksi tiedostopoluksi.
+Vastaus muodostetaan template literal -merkkijonolla, jossa `${nimi}` korvautuu muuttujan arvolla.
 
-> [!NOTE]
-> Perinteisessä Node-koodissa hakemistopolku olisi haettu muuttujasta `__dirname`. ES-moduuleissa (`package.json`:n `"type": "module"`, ks. luku [1.1](#11-packagejson-ja-projektin-perustiedot)) tätä muuttujaa ei ole automaattisesti käytettävissä, ja `import.meta.dirname` on sen nykyinen korvaaja.
+Osoite <http://localhost:3001/heippa?nimi=Matti> näyttää otsikon "Heippa Matti!", ja pelkkä <http://localhost:3001/heippa> näyttää otsikon "Heippa tuntematon!". Aiheesta lisää: [req.query Expressin API-dokumentaatiossa](https://expressjs.com/en/5x/api.html#req.query).
 
-`public/index.html` on tavallinen HTML-sivu, joka lataa tyylit Bootstrapin CDN-jakelusta ja jonka sisällä on linkit demon reitteihin:
+### 4.7 Staattiset tiedostot
+
+**Staattiset tiedostot** (static files) ovat tiedostoja, jotka palvelin lähettää selaimelle sellaisenaan, kuten HTML-sivut, kuvat ja tyylitiedostot. Tehdyt reitit ovat nyt olemassa, joten niihin voidaan linkittää palvelimen etusivulta.
+
+Projektiin luodaan kansio `public` ja sen alle kansio `img`. Kuvatiedosto `xamklogo.png` kopioidaan demon kansiosta `public/img`. Kansioon `public` luodaan tiedosto `index.html`.
 
 ```html
-<ul>
-    <li><a href="/heippa?nimi=Matti">Sano heippa (Matti)</a></li>
-    <li><a href="/heippa?nimi=Maija">Sano heippa (Maija)</a></li>
-    <li><a href="/moikka">Sano moikka</a></li>
-</ul>
+<!DOCTYPE html>
+<html lang="en">
 
-<img src="/img/xamklogo.png" alt="Xamk-logo" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <title>Demo 1</title>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Demo 1: Express-perusteita</h1>
+
+        <h2>Hello world! x 3</h2>
+
+        <ul>
+            <li><a href="/heippa?nimi=Matti">Sano heippa (Matti)</a></li>
+            <li><a href="/heippa?nimi=Maija">Sano heippa (Maija)</a></li>
+            <li><a href="/moikka">Sano moikka</a></li>
+        </ul>
+
+        <img src="/img/xamklogo.png" alt="Xamk-logo" />
+
+    </div>
+</body>
+
+</html>
 ```
 
-Nämä linkit näkyvät palvelimen etusivulla `http://localhost:3001`, ja niitä käytetään luvussa [6](#6-palvelimen-käynnistäminen-ja-reittien-testaaminen) reittien testaamiseen. Koska `express.static()` tarjoilee koko `public`-kansion, myös `img`-alikansio ja siellä oleva kuva löytyvät suoraan osoitteesta `/img/xamklogo.png`, ilman että kuvalle tarvitsee kirjoittaa erillistä reittiä.
+Sivu hakee Bootstrapin tyylitiedoston CDN-palvelusta, ja `container`-luokka tulee siitä. Linkit osoittavat luvuissa 4.5 ja 4.6 tehtyihin reitteihin. Kuvan polku `/img/xamklogo.png` alkaa `public`-kansion juuresta.
 
-## 5 Reittien rakentaminen
+`index.ts`-tiedostoon lisätään `path`-moduulin tuonti ja `express.static`-rivi ennen reittejä.
 
-Middlewaren jälkeen sovellukseen määritellään reitit, eli osoitteet joihin palvelin osaa vastata itse kirjoitetulla logiikalla. HTTP-pyynnöllä on aina jokin metodi, joka kertoo minkälaisesta toiminnosta on kyse (esimerkiksi GET tiedon hakemiseen), ja reitti kirjoitetaan aina tiettyä metodia varten kutsumalla Expressin vastaavaa metodia, tässä demossa `app.get()`. Metodille annetaan osoite ja pyynnön käsittelevä funktio.
+```typescript
+import express, { type Application, type Request, type Response } from 'express';
+import path from 'path'; // uusi
 
-Molemmat tämän demon reitit vastaavat `res.send()`-metodilla, joka lähettää siinä annetun sisällön takaisin selaimelle ja päättelee sen teknisen tyypin sisällön perusteella, merkkijonolla oletuksena HTML:ksi.
+const app: Application = express();
 
-### 5.1 GET /heippa ja kyselyparametrit
+const port: number = Number(process.env.PORT) || 3001;
 
-Ensimmäinen reitti vastaa etusivun linkkeihin `/heippa?nimi=Matti` ja `/heippa?nimi=Maija` (luku [4](#4-staattisten-tiedostojen-tarjoilu)) ja muodostaa niiden mukana tulevasta nimestä tervehdyksen.
+app.use(express.static(path.join(import.meta.dirname, "public"))); // uusi
 
-```ts
 app.get("/heippa", (req: Request, res: Response) => {
 
     let nimi: string = "";
@@ -232,50 +363,56 @@ app.get("/heippa", (req: Request, res: Response) => {
     res.send(`<h1>Heippa ${nimi}!</h1>`);
 
 });
-```
 
-Pyynnön käsittelevä funktio saa parametreinaan `req`- ja `res`-oliot, jotka on tyypitetty `Request`- ja `Response`-tyyppeihin. Tyypitys on tässä pakollinen, koska Expressin `app.get()`-metodilla on useita vaihtoehtoisia parametriyhdistelmiä, ja tyyppi varmistaa että käsittelijäfunktio saa juuri oikeat pyyntö- ja vastausoliot.
-
-`?nimi=Matti` osoitteen lopussa on kyselyparametri, jonka arvo luetaan Expressissä `req.query`-oliosta. `req.query.nimi` käsitellään merkkijonona, koska kyselyparametrit ovat aina tekstiä. `typeof req.query.nimi === "string"` -tarkistuksella varmistetaan, että arvo todella on annettu merkkijonona, koska parametri voi puuttua pyynnöstä kokonaan. Jos parametri puuttuu, `nimi`-muuttujaan asetetaan oletusarvo `"tuntematon"`.
-
-### 5.2 GET /moikka
-
-```ts
 app.get("/moikka", (req: Request, res: Response) => {
     res.send("<h1>Moikka!</h1>")
 });
+
+app.listen(port, () => {
+    console.log(`Palvelin käynnistettiin osoitteeseen: http://localhost:${port}`);
+});
 ```
 
-Reitissä ei ole pakko lukea pyynnöstä mitään, jos se ei ole tarpeen. Tässä palautetaan aina sama kiinteä teksti, eikä vastaan odoteta pyynnön reittiparametrejä.
+`app.use` lisää sovellukseen **väliohjelmiston** (middleware), joka käsittelee pyynnön ennen reittejä. `express.static` on Expressin valmis väliohjelmisto, joka etsii pyydetyn polun mukaista tiedostoa annetusta kansiosta ja lähettää sen, jos tiedosto löytyy. Muuten pyyntö siirtyy eteenpäin reiteille. Pyyntö osoitteeseen `/` palauttaa kansion `index.html`-tiedoston ja pyyntö osoitteeseen `/img/xamklogo.png` kuvan.
 
-## 6 Palvelimen käynnistäminen ja reittien testaaminen
+`import.meta.dirname` on sen kansion polku, jossa `index.ts` sijaitsee. `path.join` yhdistää sen ja kansion nimen `public` käyttöjärjestelmälle sopivaksi poluksi, joten kansio löytyy riippumatta siitä, mistä kansiosta palvelin käynnistetään. `path` on Node.js:n oma moduuli, eikä sitä tarvitse asentaa erikseen.
 
-Palvelin käynnistyy `npm run dev` -komennolla, joka ajaa taustalla komennon `tsx watch ./index.ts`. Terminaaliin tulostuu palvelimen oma lokiviesti:
+Osoitteessa <http://localhost:3001> näkyy nyt etusivu, jonka linkit avaavat reittien vastaukset. Aiheesta lisää: [Staattiset tiedostot Expressissä](https://expressjs.com/en/starter/static-files.html).
 
-```
-Palvelin käynnistettiin osoitteeseen: http://localhost:3001
-```
+### 4.8 Tyyppien tarkistaminen
 
-Reittejä voi testata avaamalla selaimessa etusivun `http://localhost:3001` ja painamalla sivulla olevia linkkejä, jolloin selain siirtyy suoraan reitin osoitteeseen ja näyttää palvelimen palauttaman HTML-vastauksen. Yksittäistä reittiä voi testata myös suoraan selaimen osoiteriviltä, esimerkiksi `http://localhost:3001/heippa?nimi=Matti`.
-
-Koska `tsx watch` seuraa tiedostomuutoksia, koodiin tehdyt muutokset näkyvät palvelimen vastauksissa heti tallennuksen jälkeen ilman, että palvelinta tarvitsee itse käynnistää uudelleen.
-
-Koodin tyypit voi tarkistaa myös erikseen, ilman palvelimen käynnistämistä, komennolla
+`tsx` poistaa koodista tyypit ja suorittaa sen tarkistamatta tyyppejä. Palvelin käynnistyy siis myös silloin, kun koodissa on tyyppivirhe. Tyypit tarkistetaan erikseen komennolla `npm run typecheck`, joka ajaa `package.json`-tiedoston skriptin `tsc --noEmit`.
 
 ```bash
 npm run typecheck
 ```
 
-Komento on hyödyllinen etenkin ennen koodin palauttamista, koska se paljastaa tyypitysvirheet nopeasti ilman, että palvelinta tarvitsee käynnistää tai reittejä testata käsin.
+`tsc` on TypeScriptin kääntäjä. Valitsin `--noEmit` tekee pelkän tarkistuksen luomatta JavaScript-tiedostoja. Jos komento päättyy ilman virheilmoituksia, tyypit ovat kunnossa. Virheen kohdalla tulostuu tiedosto, rivi ja kuvaus, esimerkiksi `index.ts(6,7): error TS2322: Type 'string' is not assignable to type 'number'.`, jos porttimuuttujaan sijoitetaan merkkijono.
 
-## 7 Lopuksi
+## 5. Projektin rakenne lopussa
 
-Demossa rakennettiin Express-palvelin, joka tarjoilee sekä staattisia tiedostoja että itse kirjoitettuja reittejä. Läpikäytyjä asioita:
+`npm ci` luo lisäksi kansion `node_modules`, jota ei näytetä rakenteessa.
 
-- projektin määritystiedostot ja niiden tarkoitus
-- riippuvuuksien asentaminen
-- Express-sovelluksen luominen ja käynnistäminen
-- staattisen `public`-kansion tarjoilu
-- kahden erilaisen reitin kirjoittaminen, ja kyselyparametrin lukeminen pyynnöstä
+```text
+demo-01/
+├── public/
+│   ├── img/
+│   │   └── xamklogo.png
+│   └── index.html
+├── index.ts
+├── package-lock.json
+├── package.json
+└── tsconfig.json
+```
 
-Myöhemmissä demoissa reittejä tulee lisää, ja pyyntöjen mukana aletaan käsitellä myös muuta dataa kuin pelkkiä kyselyparametreja.
+## 6. Yhteenveto
+
+Demossa asennettiin Node.js 24 ja luotiin TypeScript-pohjainen Express-projekti lukituilla pakettiversioilla. Palvelimeen tehtiin kaksi GET-reittiä, joista toinen lukee kyselyparametrin, ja `public`-kansion tiedostot jaettiin selaimelle `express.static`-väliohjelmistolla. Lisäksi opittiin käynnistämään palvelin kehitystilassa `tsx`:llä ja tarkistamaan tyypit erikseen `tsc`:llä.
+
+---
+
+## 7. Jatka harjoittelua
+
+1. **Toinen kyselyparametri.** Muutetaan reittiä `/heippa` niin, että se lukee myös parametrin `kaupunki` ja tulostaa esimerkiksi "Heippa Matti (Mikkeli)!". Vihje: `req.query.kaupunki` tarkistetaan samalla `typeof`-tavalla kuin `nimi`.
+2. **Uusi reitti.** Lisätään reitti `/aika`, joka vastaa palvelimen kellonajalla. Vihje: `new Date().toLocaleTimeString("fi-FI")` palauttaa kellonajan merkkijonona. Etusivulle lisätään linkki uuteen reittiin.
+3. **Toinen staattinen sivu.** Lisätään `public`-kansioon sivu `tietoa.html` ja linkki siihen etusivulta. Vihje: `index.ts`-tiedostoon ei tarvita muutoksia, koska `express.static` jakaa kaikki `public`-kansion tiedostot.
