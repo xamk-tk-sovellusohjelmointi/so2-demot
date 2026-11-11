@@ -12,6 +12,8 @@ Ohjeet on kirjoitettu ensisijaisesti Windows 11:lle ja XAMPPille. Linux- ja macO
 
 ```text
 Final-Using-MySQL/
+├── errors/
+│   └── virhekasittelija.ts    # Virhe-luokka ja virheenkäsittelijä
 ├── generated/prisma/          # npx prisma generate -komennon tuottama Prisma Client (ei versionhallinnassa)
 ├── lib/
 │   └── prisma.ts              # PrismaClient-olio ja MySQL-yhteys
@@ -21,9 +23,11 @@ Final-Using-MySQL/
 │   └── seed.ts                # Esimerkkidata tietokantaan
 ├── public/
 │   └── index.html             # Etusivu
+├── routes/
+│   └── apiAjot.ts             # REST API -reitit osoitteessa /api/ajot
 ├── .env                       # DATABASE_URL (ei versionhallinnassa)
 ├── .env.example               # Mallitiedosto .env-tiedostolle
-├── index.ts                   # Express-palvelin
+├── index.ts                   # Express-palvelin, API-reitit ja virheenkäsittely
 ├── package.json
 ├── prisma7.config.ts          # Prisman asetukset ja seed-komento (ennallaan)
 └── tsconfig.json

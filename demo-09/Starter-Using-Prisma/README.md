@@ -10,6 +10,8 @@ Prisma on asennettu virallisen ohjeen [Quickstart: Prisma ORM with SQLite](https
 
 ```text
 Starter-Using-Prisma/
+├── errors/
+│   └── virhekasittelija.ts    # Virhe-luokka ja virheenkäsittelijä
 ├── generated/prisma/          # npx prisma generate -komennon tuottama Prisma Client (ei versionhallinnassa)
 ├── lib/
 │   └── prisma.ts              # PrismaClient-olio ja tietokantayhteys
@@ -22,17 +24,19 @@ Starter-Using-Prisma/
 │   └── seed.ts                # Esimerkkidata tietokantaan
 ├── public/
 │   └── index.html             # Etusivu
+├── routes/
+│   └── apiAjot.ts             # REST API -reitit osoitteessa /api/ajot
 ├── .env                       # DATABASE_URL (ei versionhallinnassa)
 ├── .gitignore
 ├── dev.db                     # SQLite-tietokanta
-├── index.ts                   # Express-palvelin
+├── index.ts                   # Express-palvelin, API-reitit ja virheenkäsittely
 ├── package.json
 ├── package-lock.json
 ├── prisma7.config.ts          # Prisman asetukset ja seed-komento
 └── tsconfig.json
 ```
 
-`index.ts` sisältää pelkän Express-palvelimen, joka tarjoilee `public`-kansion sisällön portissa `3009`. Reittejä ei vielä ole.
+`index.ts` sisältää Express-palvelimen, joka tarjoilee `public`-kansion sisällön portissa `3009`. Palvelimessa on demon 5 mallinen REST API ajoille (`routes/apiAjot.ts`, osoite `/api/ajot`) ja virheenkäsittelijä (`errors/virhekasittelija.ts`).
 
 `package.json` ja `tsconfig.json` ovat samat kuin demoissa 5–8. Prisman kannalta olennaiset paketit ovat:
 
